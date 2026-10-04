@@ -1018,7 +1018,7 @@ async def authed_user(request: Request):
     if not tg_user or "id" not in tg_user:
         raise HTTPException(401, "bad initData")
     uid = int(tg_user["id"])
-    register(uid, tg_user.get("username", ""), tg_user.tg.get("first_name", ""))
+    register(uid, tg_user.get("username", ""), tg_user.get("first_name", ""))
     return uid, tg_user
 
 def sig_dict(s):
@@ -1031,7 +1031,7 @@ def sig_dict(s):
 async def me(request: Request):
     uid, tg = await authed_user(request)
     u = user(uid)
-    return {"id": uid, "name": get("first_name", ""),
+    return {"id": uid, "name": tg.get("first_name", ""),
             "plan": "vip" if is_vip(u) else "free",
             "vip_until": u["vip_until"] if u else 0,
             "ref_count": u["ref_count"] if u else 0,
