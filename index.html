@@ -203,21 +203,29 @@ function goReferral(){ showTab('referral'); }
 
 function sigCard(s){
   const long = s.side==='LONG';
+  const lvl = {open:0, tp1:1, tp2:2, tp3:3, tp4:4}[s.status] ?? 0;
+  const hit = i => lvl >= i ? ' ✅' : '';
+  const slMark = s.status==='sl' ? ' ❌' : '';
+  const badge = s.status==='tp4' ? '🎯 تەواو — هەموو TP پێکا' :
+    s.status==='sl' ? '🛑 تەواو — ستۆپ گرت' :
+    s.status==='expired' ? '⌛ بەسەرچوو' :
+    /^tp[1-3]$/.test(s.status) ? `✅ ${s.status.toUpperCase()} پێکا` : '⏳ کراوەیە';
   return `<div class="card sig ${s.side}">
     <div class="top">
       <span class="badge ${s.side}">${long?'🟢 LONG':'🔴 SHORT'} ${s.symbol}</span>
       <span class="score">✅ ${s.score}/100</span>
     </div>
+    <div style="margin:6px 0;font-weight:bold">${badge}</div>
     <div class="lv">
       <div><span>Entry</span><b>${f4(s.entry)}</b></div>
-      <div class="sl"><span>SL</span><b>${f4(s.sl)}</b></div>
-      <div class="tp"><span>TP1</span><b>${f4(s.tp1)}</b></div>
-      <div class="tp"><span>TP2</span><b>${f4(s.tp2)}</b></div>
-      <div class="tp"><span>TP3</span><b>${f4(s.tp3)}</b></div>
-      <div class="tp"><span>TP4</span><b>${f4(s.tp4)}</b></div>
+      <div class="sl"><span>SL${slMark}</span><b>${f4(s.sl)}</b></div>
+      <div class="tp"><span>TP1${hit(1)}</span><b>${f4(s.tp1)}</b></div>
+      <div class="tp"><span>TP2${hit(2)}</span><b>${f4(s.tp2)}</b></div>
+      <div class="tp"><span>TP3${hit(3)}</span><b>${f4(s.tp3)}</b></div>
+      <div class="tp"><span>TP4${hit(4)}</span><b>${f4(s.tp4)}</b></div>
     </div>
     <img class="chart" loading="lazy" src="/api/chart/${s.id}" alt="chart">
-    <div class="time">${dt(s.created)} • ${s.tf} • ${s.status}</div>
+    <div class="time">${dt(s.created)} • ${s.tf}</div>
     <div style="height:8px"></div>
     <button class="btn" onclick="enterPaper(${s.id}, this)">ENTER — paper trade 📝</button>
   </div>`;
