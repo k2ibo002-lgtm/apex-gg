@@ -13,8 +13,14 @@ def main():
         print("DATABASE_URL missing", flush=True)
         return 1
     index.init()
-    index.scan_once()
-    index.track_outcomes()
+    if not index.acquire_scan_lock():
+        print("previous scan still running, skipping", flush=True)
+        return 0
+    try:
+        index.scan_once()
+        index.track_outcomes()
+    finally:
+        index.release_scan_lock()
     return 0
 
 
