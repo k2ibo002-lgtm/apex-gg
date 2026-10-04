@@ -1,1 +1,1 @@
-{"functions":{"api/index.py":{"maxDuration":60,"memory":1024}}}
+{"functions":{"api/index.py":{"includeFiles":"index.html","maxDuration":60,"memory":1024}}}
