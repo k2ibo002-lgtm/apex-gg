@@ -100,7 +100,12 @@ def init():
         entry DOUBLE PRECISION, sl DOUBLE PRECISION,
         tp1 DOUBLE PRECISION, tp2 DOUBLE PRECISION,
         tp3 DOUBLE PRECISION, tp4 DOUBLE PRECISION,
-        score INT, created BIGINT, status TEXT DEFAULT 'open', closed BIGINT DEFAULT 0
+        score INT, created BIGINT, status TEXT DEFAULT 'open', closed BIGINT DEFAULT 0,
+        signal_uid TEXT DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS signal_msgs(
+        signal_id INT, user_id BIGINT, msg_id BIGINT,
+        PRIMARY KEY(signal_id, user_id)
     );
     CREATE TABLE IF NOT EXISTS scan_lock(id INT PRIMARY KEY, running INT DEFAULT 0, started_at BIGINT DEFAULT 0);
     CREATE TABLE IF NOT EXISTS deliveries(
@@ -125,6 +130,15 @@ def init():
     );
     CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT);
     """)
+    c.commit()
+    # migrations for existing DBs
+    for stmt in (
+        "ALTER TABLE signals ADD COLUMN IF NOT EXISTS signal_uid TEXT DEFAULT ''",
+    ):
+        try:
+            cur.execute(stmt)
+        except Exception:
+            pass
     c.commit()
     cur.close()
     c.close()
@@ -212,18 +226,33 @@ def all_user_ids():
 
 
 def save_signal(s):
+    import random
+    uid = f"#ID{int(time.time())}{random.randint(1000, 9999)}"
+    s["signal_uid"] = uid
     c = _conn()
     cur = c.cursor()
     cur.execute(
-        """INSERT INTO signals(symbol,tf,side,entry,sl,tp1,tp2,tp3,tp4,score,created)
-           VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
+        """INSERT INTO signals(symbol,tf,side,entry,sl,tp1,tp2,tp3,tp4,score,created,signal_uid)
+           VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
         (s["symbol"], s["tf"], s["side"], s["entry"], s["sl"],
-         s["tp1"], s["tp2"], s["tp3"], s["tp4"], s["score"], int(time.time())))
+         s["tp1"], s["tp2"], s["tp3"], s["tp4"], s["score"], int(time.time()), uid)
+    )
     sid = cur.fetchone()[0]
     c.commit()
     cur.close()
     c.close()
     return sid
+
+
+def save_signal_msg(sid, uid, msg_id):
+    _exec("INSERT INTO signal_msgs(signal_id,user_id,msg_id) VALUES(%s,%s,%s) "
+          "ON CONFLICT (signal_id,user_id) DO UPDATE SET msg_id=EXCLUDED.msg_id",
+          (sid, uid, msg_id))
+
+
+def get_signal_msg(sid, uid):
+    r = _one("SELECT msg_id FROM signal_msgs WHERE signal_id=%s AND user_id=%s", (sid, uid))
+    return r["msg_id"] if r else None
 
 
 def recent_signal(symbol, side, hours):
@@ -232,12 +261,16 @@ def recent_signal(symbol, side, hours):
 
 
 def open_signals():
-    return _all("SELECT * FROM signals WHERE status='open'")
+    return _all("SELECT * FROM signals WHERE status IN ('open','tp1','tp2','tp3')")
 
 
 def update_signal(sid, status):
-    _exec("UPDATE signals SET status=%s, closed=%s WHERE id=%s",
-          (status, int(time.time()), sid))
+    final = status in ("tp4", "sl", "expired")
+    if final:
+        _exec("UPDATE signals SET status=%s, closed=%s WHERE id=%s",
+              (status, int(time.time()), sid))
+    else:
+        _exec("UPDATE signals SET status=%s WHERE id=%s", (status, sid))
 
 
 def record_delivery(sid, uid):
@@ -250,15 +283,42 @@ def signal_recipients(sid):
 
 
 def stats_overall():
-    rows = _all("SELECT status, COUNT(*) n FROM signals WHERE status!='open' GROUP BY status")
+    """Only finalized signals count: tp4 = win, sl = loss."""
+    rows = _all("SELECT status, COUNT(*) n FROM signals "
+                "WHERE status IN ('tp4','sl','expired') GROUP BY status")
     d = {r["status"]: r["n"] for r in rows}
-    wins = sum(d.get(k, 0) for k in ("tp1", "tp2", "tp3", "tp4"))
+    wins = d.get("tp4", 0)
     losses = d.get("sl", 0)
-    total = wins + losses + d.get("expired", 0)
-    return {"wins": wins, "losses": losses, "expired": d.get("expired", 0),
-            "total": total, "winrate": round(100 * wins / total, 1) if total else 0.0}
+    expired = d.get("expired", 0)
+    prog = _one("SELECT COUNT(*) n FROM signals WHERE status IN ('open','tp1','tp2','tp3')")["n"]
+    total = wins + losses
+    return {"wins": wins, "losses": losses, "expired": expired,
+            "in_progress": prog, "total": total,
+            "winrate": round(100 * wins / total, 1) if total else 0.0}
 
 
+def _winrate(rows):
+    w = sum(1 for r in rows if r["status"] == "tp4")
+    t = len(rows)
+    return round(100 * w / t, 1) if t else None
+
+
+def signal_stats():
+    """GGShot-style stats from real finalized signals (tp4=win, sl=loss)."""
+    fin = _all("SELECT side, status FROM signals WHERE status IN ('tp4','sl')")
+    longs = [r for r in fin if r["side"] == "LONG"]
+    shorts = [r for r in fin if r["side"] == "SHORT"]
+    out = {"accuracy": _winrate(fin), "longs": _winrate(longs), "shorts": _winrate(shorts),
+           "n": len(fin)}
+    for k, n in (("last5", 5), ("last10", 10), ("last20", 20)):
+        rows = _all("SELECT status FROM signals WHERE status IN ('tp4','sl') "
+                    "ORDER BY id DESC LIMIT %s", (n,))
+        out[k] = _winrate(rows)
+    return out
+
+
+def fmt_pct(v):
+    return f"{v:.0f}%" if v is not None else "\u2014"
 def latest_signals(n=5):
     return _all("SELECT * FROM signals ORDER BY id DESC LIMIT %s", (n,))
 
@@ -338,7 +398,7 @@ def paper_list(uid, status="open"):
                 (uid, status))
 
 
-def paper_close(pid, pnl_pct):
+def paper_close_trade(pid, pnl_pct):
     _exec("UPDATE paper_trades SET status='closed', pnl_pct=%s, closed=%s WHERE id=%s",
           (pnl_pct, int(time.time()), pid))
 
@@ -383,7 +443,7 @@ def _multipart(fields, files):
     return body, boundary
 
 
-def send_photo(chat_id, photo_path, caption=None, reply_markup=None):
+def send_photo(chat_id, photo_path, caption=None, reply_markup=None, reply_to=None):
     token = config.BOT_TOKEN
     with open(photo_path, "rb") as f:
         data = f.read()
@@ -393,14 +453,14 @@ def send_photo(chat_id, photo_path, caption=None, reply_markup=None):
         fields["parse_mode"] = "HTML"
     if reply_markup:
         fields["reply_markup"] = json.dumps(reply_markup)
+    if reply_to:
+        fields["reply_to_message_id"] = str(reply_to)
     body, boundary = _multipart(fields, {"photo": ("chart.png", data)})
     req = urllib.request.Request(
         BASE + token + "/sendPhoto", data=body,
         headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)
-
-
 def answer_callback(callback_id, text=""):
     return _post("answerCallbackQuery", {"callback_query_id": callback_id, "text": text})
 
@@ -729,6 +789,27 @@ def signal_chart(analysis, sig, path):
     return path
 
 
+def tv_chart_png(df, sig, out_path, hits=None, callout=None, sig_time=None):
+    """TradingView chart via headless Chrome (lightweight-charts).
+
+    Falls back to the matplotlib chart when playwright/Chromium is missing
+    (e.g. on Vercel). df: candles DataFrame with o/h/l/c/ct(ms).
+    """
+    try:
+        import sys as _sys, os as _os
+        _root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+        if _root not in _sys.path:
+            _sys.path.insert(0, _root)
+        from tv_chart import render_tv_chart
+        return render_tv_chart(df, sig, out_path, hits=hits, callout=callout,
+                               sig_time=sig_time)
+    except Exception as e:
+        print("tv chart unavailable, matplotlib fallback:", str(e)[:150], flush=True)
+        a = df["h"] - df["l"]
+        analysis = {"df": df, "atr": float(a.mean()) if len(a) else 0.0}
+        return signal_chart(analysis, sig, out_path)
+
+
 def analysis_chart(analysis, path):
     """Chart without a signal — for /analyze."""
     df = analysis["df"].iloc[-90:].copy().reset_index(drop=True)
@@ -767,36 +848,62 @@ def pct(a, b):
 
 
 def signal_text(s):
+    """GGShot-style signal message (spot, no leverage). Stats are real DB values."""
     s = dict(s)
-    side_e = "🟢 LONG" if s["side"] == "LONG" else "🔴 SHORT"
+    is_long = s["side"] == "LONG"
+    arrow = "\U0001F4C8" if is_long else "\U0001F4C9"
+    side_e = "\U0001F7E2 LONG" if is_long else "\U0001F534 SHORT"
     e, sl = s["entry"], s["sl"]
     tps = [s["tp1"], s["tp2"], s["tp3"], s["tp4"]]
-    st = s.get("status", "open")
-    lvl = {"tp1": 1, "tp2": 2, "tp3": 3, "tp4": 4}.get(st, 0)
-    sl_mark = " ❌" if st == "sl" else ""
+    ez = abs(s["tp1"] - e) * (config.ENTRY_ZONE_ATR / config.TP_ATRS[0])
+    zlo, zhi = (e - ez, e + ez)
+    st = signal_stats()
+    uid = s.get("signal_uid") or ""
     lines = [
-        f"{side_e} | <b>{s['symbol']}</b> ({s['tf']})",
-        f"✅ <b>VALIDATOR Score: {s['score']}/100</b>",
+        f"\U0001F4E9 <b>#{s['symbol']}</b> {s['tf']} | VALIDATOR {s['score']}/100 {arrow}",
+        f"{side_e} Entry Zone: <code>{fmt(zlo)} \u2013 {fmt(zhi)}</code>",
         "",
-        f"🎯 Entry: <code>{fmt(e)}</code>",
-        f"🛑 SL{sl_mark}: <code>{fmt(sl)}</code> ({pct(e, sl):+.2f}%)",
+        f"\U0001F3AF <b>Strategy Accuracy: {fmt_pct(st['accuracy'])}</b>",
+        f"Longs: {fmt_pct(st['longs'])} | Shorts: {fmt_pct(st['shorts'])}",
         "",
+        f"Last 5 signals: {fmt_pct(st['last5'])}",
+        f"Last 10 signals: {fmt_pct(st['last10'])}",
+        f"Last 20 signals: {fmt_pct(st['last20'])}",
+        "",
+        "\u23F3 <b>Signal Details:</b>",
     ]
-    for i, tp in enumerate(tps, 1):
-        mk = " ✅" if lvl >= i else ""
-        lines.append(f"🎯 TP{i}{mk}: <code>{fmt(tp)}</code> ({pct(e, tp):+.2f}%)")
-    if st == "tp4":
-        lines += ["", "🎯 <b>تەواو — هەموو TP پێکا ✅</b>"]
-    elif st in ("tp1", "tp2", "tp3"):
-        lines += ["", f"✅ <b>{st.upper()} پێکا!</b>"]
-    elif st == "sl":
-        lines += ["", "🛑 <b>تەواو — ستۆپ گرت ❌</b>"]
-    elif st == "expired":
-        lines += ["", "⌛ <b>بەسەرچوو</b>"]
-    lines += ["", f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}"]
+    for n_, tp in enumerate(tps, 1):
+        lines.append(f"Target {n_}: <code>{fmt(tp)}</code>")
+    lines += [
+        "",
+        f"\U0001F53A <b>Stop-Loss:</b> <code>{fmt(sl)}</code>",
+        "\U0001F4A1 <i>After reaching the first target you can move your stop to breakeven.</i>",
+        "",
+        f"\U0001F50E Signal ID: <code>{uid}</code>",
+    ]
     return "\n".join(lines)
 
 
+def tp_reply_text(s, new_level):
+    """GGShot-style TP-hit reply (spot, no leverage). new_level: 1..4 or 'sl'."""
+    s = dict(s)
+    base = s["symbol"].replace("USDT", "")
+    e = s["entry"]
+    if new_level == "sl":
+        lpct = pct(e, s["sl"])
+        return (f"<b>#{base}</b> stopped out \U0001F6D1\n\n"
+                f"This signal printed:\n<b>{lpct:+.2f}% (spot)</b>")
+    tps = [s["tp1"], s["tp2"], s["tp3"], s["tp4"]]
+    tp = tps[new_level - 1]
+    ppct = pct(e, tp)
+    done_word = {1: "one target done", 2: "two targets done",
+                 3: "three targets done", 4: "all targets done"}.get(new_level, "target done")
+    emoji = "\U0001F94A" if new_level == 4 else "\u2705"
+    lines = [f"<b>#{base}</b> {done_word} {emoji}", "",
+             "This signal printed:", f"<b>{ppct:+.2f}% profit (spot)</b>"]
+    if new_level < 4:
+        lines += ["", f"\U0001F3AF Next: TP{new_level + 1} at <code>{fmt(tps[new_level])}</code>"]
+    return "\n".join(lines)
 def kb_main():
     rows = [
         [{"text": "📡 دوایین سیگناڵەکان", "callback_data": "signals"},
@@ -876,9 +983,8 @@ def cmd_stats(chat_id):
         "📊 <b>ئاماری گشتی بۆت</b>\n\n"
         f"🏆 Win-rate: <b>{s['winrate']}%</b>\n"
         f"✅ براوە: {s['wins']} | ❌ دۆڕاو: {s['losses']}\n"
-        f"⌛ بەسەرچوو: {s['expired']} | 📡 کۆی سیگناڵ: {s['total']}")
-
-
+        f"⌛ بەسەرچوو: {s['expired']} | 📡 کۆی سیگناڵ: {s['total']}\n"
+        f"⏳ لە بەردەوامدان: {s['in_progress']}")
 def cmd_journal(chat_id, uid):
     rows = journal_list(uid)
     st = journal_stats(uid)
@@ -1038,22 +1144,30 @@ def scan_once():
         if recent_signal(sym, s["side"], config.SIGNAL_COOLDOWN_H):
             continue
         sid = save_signal(s)
-        # chart
+        s["id"] = sid
+        # TradingView chart (headless Chrome; matplotlib fallback)
         path = f"/tmp/apex_sig_{sid}.png"
         try:
-            signal_chart(a, s, path)
+            tv_chart_png(a["df"], s, path)
         except Exception as e:
             print("chart failed:", e, flush=True)
             path = None
         sent = 0
+        caption = signal_text(s)
         for uid in all_user_ids():
             if not can_receive(uid):
                 continue
             try:
                 if path:
-                    send_photo(uid, path, caption=signal_text(s))
+                    res = send_photo(uid, path, caption=caption)
                 else:
-                    send_message(uid, signal_text(s))
+                    res = send_message(uid, caption)
+                try:
+                    mid = res.get("result", {}).get("message_id")
+                    if mid:
+                        save_signal_msg(sid, uid, mid)
+                except Exception:
+                    pass
                 mark_delivered(uid)
                 record_delivery(sid, uid)
                 sent += 1
@@ -1061,9 +1175,26 @@ def scan_once():
                 print("send failed:", uid, str(e)[:100], flush=True)
             time.sleep(0.4)
         print(f"signal {sym} {s['side']} -> {sent} users", flush=True)
+        try:
+            if path and os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            pass
+def _signal_level(status):
+    return {"open": 0, "tp1": 1, "tp2": 2, "tp3": 3, "tp4": 4}.get(status, 0)
+
+
+def _level_status(lvl):
+    return {0: "open", 1: "tp1", 2: "tp2", 3: "tp3", 4: "tp4"}[lvl]
 
 
 def track_outcomes():
+    """Progressive TP tracking: open -> tp1 -> tp2 -> tp3 -> tp4 (or sl/expired).
+
+    Same-candle policy: the highest TP touched in a candle wins; SL only
+    counts when no TP was touched in that candle. Notifies (as a reply with
+    a fresh TradingView chart) only when the level advances.
+    """
     print("outcome check start", flush=True)
     for row in open_signals():
         s = dict(row)
@@ -1077,36 +1208,79 @@ def track_outcomes():
                 update_signal(s["id"], "expired")
             continue
         tps = [s["tp1"], s["tp2"], s["tp3"], s["tp4"]]
-        hit = None
+        cur_lvl = _signal_level(s["status"])
+        new_lvl = cur_lvl
+        sl_hit = False
         for _, r_ in df.iterrows():
             if s["side"] == "LONG":
-                ttp = next((f"tp{i}" for i, tp in enumerate(tps, 1) if r_["h"] >= tp), None)
-                tsl = r_["l"] <= s["sl"]
+                lvl = 0
+                for n_, tp in enumerate(tps, 1):
+                    if r_["h"] >= tp:
+                        lvl = n_
+                sl = r_["l"] <= s["sl"]
             else:
-                ttp = next((f"tp{i}" for i, tp in enumerate(tps, 1) if r_["l"] <= tp), None)
-                tsl = r_["h"] >= s["sl"]
-            if ttp and (hit is None or ttp > hit):
-                hit = ttp
-            elif tsl and hit is None:
-                hit = "sl"
+                lvl = 0
+                for n_, tp in enumerate(tps, 1):
+                    if r_["l"] <= tp:
+                        lvl = n_
+                sl = r_["h"] >= s["sl"]
+            if lvl > new_lvl:
+                new_lvl = lvl
+            if sl and lvl == 0:
+                sl_hit = True
                 break
-        if hit:
-            update_signal(s["id"], hit)
-            print(f"signal {s['id']} -> {hit}", flush=True)
-            e = "🎯" if hit.startswith("tp") else "🛑"
-            label = {"tp1": "TP1 ✅", "tp2": "TP2 ✅✅", "tp3": "TP3 ✅✅✅",
-                     "tp4": "TP4 🎯🎯🎯🎯", "sl": "SL ❌"}.get(hit, hit)
-            for uid in signal_recipients(s["id"]):
-                try:
-                    if get_prefs(uid).get("tp_sl_reports", True):
-                        send_message(
-                            uid, f"{e} <b>{s['symbol']}</b> {s['side']} → <b>{label}</b>")
-                except Exception:
-                    pass
-                time.sleep(0.3)
+            if new_lvl >= 4:
+                break
+        if sl_hit:
+            update_signal(s["id"], "sl")
+            print(f"signal {s['id']} -> sl", flush=True)
+            _notify_progress(s, df, "sl")
+        elif new_lvl > cur_lvl:
+            st = _level_status(new_lvl)
+            update_signal(s["id"], st)
+            print(f"signal {s['id']} -> {st}", flush=True)
+            _notify_progress(s, df, new_lvl)
 
 
-
+def _notify_progress(s, df, new_level):
+    """Reply to the original signal message with a fresh TradingView chart."""
+    hits = list(range(1, new_level + 1)) if isinstance(new_level, int) else []
+    e = s["entry"]
+    if new_level == "sl":
+        callout = "Stopped\n{:+.2f}%".format(pct(e, s["sl"]))
+    else:
+        tp = [s["tp1"], s["tp2"], s["tp3"], s["tp4"]][new_level - 1]
+        tag = "Long" if s["side"] == "LONG" else "Short"
+        callout = f"{tag} Printed\n{pct(e, tp):+.2f}%"
+    path = f"/tmp/apex_prog_{s['id']}_{new_level}.png"
+    try:
+        cdf = klines(s["symbol"], s["tf"], 120)
+    except Exception:
+        cdf = df
+    try:
+        tv_chart_png(cdf, s, path, hits=hits, callout=callout,
+                     sig_time=int(s["created"]))
+    except Exception as ex:
+        print("progress chart failed:", ex, flush=True)
+        path = None
+    caption = tp_reply_text(s, new_level)
+    for uid in signal_recipients(s["id"]):
+        try:
+            if not get_prefs(uid).get("tp_sl_reports", True):
+                continue
+            reply_to = get_signal_msg(s["id"], uid)
+            if path:
+                send_photo(uid, path, caption=caption, reply_to=reply_to)
+            else:
+                send_message(uid, caption)
+        except Exception as ex:
+            print("progress notify failed:", uid, str(ex)[:100], flush=True)
+        time.sleep(0.4)
+    try:
+        if path and os.path.exists(path):
+            os.remove(path)
+    except Exception:
+        pass
 """Vercel entrypoint: single FastAPI app mounted at /api/*.
 
 Routes are defined WITHOUT the /api prefix — Vercel mounts this app at /api.
@@ -1273,7 +1447,7 @@ async def paper_close(request: Request):
     pnl = (px - t["entry"]) / t["entry"] * 100
     if t["side"] == "SHORT":
         pnl = -pnl
-    paper_close(pid, round(pnl, 2))
+    paper_close_trade(pid, round(pnl, 2))
     return {"pnl_pct": round(pnl, 2)}
 
 
