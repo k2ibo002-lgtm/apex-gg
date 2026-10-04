@@ -64,10 +64,21 @@ def _candles_json(df):
     out = []
     for _, r in df.iterrows():
         ts = int(r["ct"]) // 1000
-        out.append({"time": ts, "open": round(float(r["o"]), 6),
-                    "high": round(float(r["h"]), 6), "low": round(float(r["l"]), 6),
-                    "close": round(float(r["c"]), 6)})
+        out.append({"time": ts, "open": round(float(r["o"]), 10),
+                    "high": round(float(r["h"]), 10), "low": round(float(r["l"]), 10),
+                    "close": round(float(r["c"]), 10)})
     return out
+
+
+def _px_precision(px):
+    import math
+    try:
+        px = float(px)
+    except Exception:
+        return 2
+    if px <= 0:
+        return 2
+    return max(2, min(10, -math.floor(math.log10(px)) + 2))
 
 
 def render_tv_chart(df, sig, out_path, hits=None, callout=None, width=1280, height=720,
@@ -86,21 +97,21 @@ def render_tv_chart(df, sig, out_path, hits=None, callout=None, width=1280, heig
         lwc_js = f.read()
 
     candles = _candles_json(df.tail(90))
+    entry, sl = float(sig["entry"]), float(sig["sl"])
+    pxp = _px_precision(entry)
+    min_move = round(10 ** (-pxp), pxp)
     is_long = sig["side"] == "LONG"
     col = UP if is_long else DN
-    entry, sl = float(sig["entry"]), float(sig["sl"])
     tps = [float(sig[f"tp{i}"]) for i in range(1, 5)]
     icon = coin_icon_b64(sig["symbol"])
     icon_html = (f'<img src="data:image/png;base64,{icon}" '
                  'style="width:18px;height:18px;vertical-align:-3px;border-radius:50%"> '
                  if icon else '<span style="color:#7b3ff2">\u25cf</span> ')
 
-    # trailing stop series (running min low / max high from signal candle)
     times = [c["time"] for c in candles]
     if sig_time is None:
         sig_time = times[-1]
     else:
-        # snap to closest candle at/after the signal time
         sig_time = min([t for t in times if t >= sig_time] or [times[-1]])
     tr = []
     started = False
@@ -112,7 +123,7 @@ def render_tv_chart(df, sig, out_path, hits=None, callout=None, width=1280, heig
             if started:
                 rm = min(rm, c_["low"])
             tr.append({"time": c_["time"],
-                       "value": round(rm if rm != float("inf") else c_["low"], 6)})
+                       "value": round(rm if rm != float("inf") else c_["low"], 10)})
     else:
         rm = float("-inf")
         for c_ in candles:
@@ -121,9 +132,8 @@ def render_tv_chart(df, sig, out_path, hits=None, callout=None, width=1280, heig
             if started:
                 rm = max(rm, c_["high"])
             tr.append({"time": c_["time"],
-                       "value": round(rm if rm != float("-inf") else c_["high"], 6)})
+                       "value": round(rm if rm != float("-inf") else c_["high"], 10)})
 
-    # markers
     markers = [{"time": sig_time, "position": "belowBar" if is_long else "aboveBar",
                 "color": col, "shape": "arrowUp" if is_long else "arrowDown",
                 "text": sig["side"]}]
@@ -173,14 +183,15 @@ const chart = LightweightCharts.createChart(document.getElementById('tv'), {{
   rightPriceScale: {{ borderColor: '#1e222d' }},
 }});
 const cs = chart.addCandlestickSeries({{ upColor: '{UP}', downColor: '{DN}',
-  borderVisible: false, wickUpColor: '{UP}', wickDownColor: '{DN}' }});
+  borderVisible: false, wickUpColor: '{UP}', wickDownColor: '{DN}',
+  priceFormat: {{ type: 'price', precision: {pxp}, minMove: {min_move} }} }});
 cs.setData({json.dumps(candles)});
 const DASH = LightweightCharts.LineStyle.Dashed;
-const TPS = {json.dumps([round(t, 6) for t in tps])};
+const TPS = {json.dumps([round(t, 10) for t in tps])};
 const NAMES = ['APEX:Take Profit','APEX:Take Profit 2','APEX:Take Profit 3','APEX:Take Profit 4'];
 TPS.forEach((p, i) => cs.createPriceLine({{ price: p, color: '{col}', lineWidth: 1,
   lineStyle: DASH, axisLabelVisible: true, title: NAMES[i] }}));
-cs.createPriceLine({{ price: {sl:.6f}, color: '{DN}', lineWidth: 1,
+cs.createPriceLine({{ price: {sl:.10f}, color: '{DN}', lineWidth: 1,
   lineStyle: DASH, axisLabelVisible: true, title: 'APEX:Stop Loss' }});
 const tr = chart.addLineSeries({{ color: '{col}', lineWidth: 2,
   priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }});
