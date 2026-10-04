@@ -102,6 +102,7 @@ def init():
         tp3 DOUBLE PRECISION, tp4 DOUBLE PRECISION,
         score INT, created BIGINT, status TEXT DEFAULT 'open', closed BIGINT DEFAULT 0
     );
+    CREATE TABLE IF NOT EXISTS scan_lock(id INT PRIMARY KEY, running INT DEFAULT 0, started_at BIGINT DEFAULT 0);
     CREATE TABLE IF NOT EXISTS deliveries(
         signal_id INT, user_id BIGINT, PRIMARY KEY(signal_id, user_id)
     );
@@ -979,6 +980,31 @@ def handle_update(update):
 
 """Scanner: analyze symbols, emit signals, track outcomes. Used by GitHub Actions."""
 
+
+
+def acquire_scan_lock():
+    try:
+        c = _conn()
+        cur = c.cursor()
+        cur.execute("INSERT INTO scan_lock(id,running,started_at) VALUES(1,0,0) ON CONFLICT DO NOTHING")
+        now = int(time.time())
+        cur.execute("UPDATE scan_lock SET running=1, started_at=%s WHERE id=1 AND (running=0 OR started_at<%s)",
+                    (now, now - 720))
+        ok = cur.rowcount == 1
+        c.commit()
+        cur.close()
+        c.close()
+        return ok
+    except Exception as e:
+        print("lock error:", e, flush=True)
+        return True
+
+
+def release_scan_lock():
+    try:
+        _exec("UPDATE scan_lock SET running=0 WHERE id=1")
+    except Exception as e:
+        print("unlock error:", e, flush=True)
 
 
 def scan_once():
