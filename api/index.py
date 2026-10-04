@@ -1,16 +1,22 @@
 """APEX all-in-one backend for Vercel (single FastAPI function)."""
 
+
 import os, sys, json, time, hashlib, hmac, urllib.parse, urllib.request, mimetypes
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+
 from datetime import datetime, date
 
+
 from contextlib import asynccontextmanager
+
 
 import matplotlib
 matplotlib.use('Agg')
 
+
 import matplotlib.pyplot as plt
+
 
 import pandas as pd
 import numpy as np
@@ -22,11 +28,15 @@ _pge.register_adapter(np.float32, lambda v: _pge.AsIs(float(v)))
 _pge.register_adapter(np.int64, lambda v: _pge.AsIs(int(v)))
 _pge.register_adapter(np.int32, lambda v: _pge.AsIs(int(v)))
 
+
 import psycopg2, psycopg2.extras
+
 
 from fastapi import FastAPI, Request, HTTPException
 
+
 from fastapi.responses import JSONResponse, FileResponse
+
 
 """Env-based config for the Vercel deployment."""
 import os
@@ -57,6 +67,8 @@ TOP_N_BY_VOLUME = 400
 import types as _t
 config = _t.SimpleNamespace(**{k: v for k, v in list(globals().items()) if k.isupper()})
 
+
+
 """Postgres persistence (Neon / Vercel Postgres). Same interface as the SQLite version."""
 import json
 import time
@@ -65,9 +77,12 @@ from datetime import date
 import psycopg2
 import psycopg2.extras
 
+
+
 def _conn():
     c = psycopg2.connect(config.DATABASE_URL)
     return c
+
 
 def init():
     c = _conn()
@@ -113,6 +128,7 @@ def init():
     cur.close()
     c.close()
 
+
 def _one(sql, args=()):
     c = _conn()
     cur = c.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -121,6 +137,7 @@ def _one(sql, args=()):
     cur.close()
     c.close()
     return r
+
 
 def _all(sql, args=()):
     c = _conn()
@@ -131,6 +148,7 @@ def _all(sql, args=()):
     c.close()
     return rows
 
+
 def _exec(sql, args=()):
     c = _conn()
     cur = c.cursor()
@@ -139,8 +157,10 @@ def _exec(sql, args=()):
     cur.close()
     c.close()
 
+
 def user(uid):
     return _one("SELECT * FROM users WHERE id=%s", (uid,))
+
 
 def register(uid, username="", first_name="", ref_by=0):
     now = int(time.time())
@@ -156,14 +176,17 @@ def register(uid, username="", first_name="", ref_by=0):
         _exec("UPDATE users SET username=%s, first_name=%s WHERE id=%s",
               (username or "", first_name or "", uid))
 
+
 def is_vip(u):
     return bool(u) and u["plan"] == "vip" and u["vip_until"] > time.time()
+
 
 def grant_vip(uid, days):
     now = int(time.time())
     cur = _one("SELECT vip_until FROM users WHERE id=%s", (uid,))
     base = max(now, cur["vip_until"] if cur else 0)
     _exec("UPDATE users SET plan='vip', vip_until=%s WHERE id=%s", (base + days * 86400, uid))
+
 
 def can_receive(uid):
     u = user(uid)
@@ -177,12 +200,15 @@ def can_receive(uid):
         return True
     return u["signals_today"] < config.FREE_SIGNALS_PER_DAY
 
+
 def mark_delivered(uid):
     _exec("UPDATE users SET signals_today=signals_today+1, day=%s WHERE id=%s",
           (date.today().isoformat(), uid))
 
+
 def all_user_ids():
     return [r["id"] for r in _all("SELECT id FROM users")]
+
 
 def save_signal(s):
     c = _conn()
@@ -198,23 +224,29 @@ def save_signal(s):
     c.close()
     return sid
 
+
 def recent_signal(symbol, side, hours):
     return _one("SELECT 1 FROM signals WHERE symbol=%s AND side=%s AND created>%s",
                 (symbol, side, int(time.time()) - hours * 3600)) is not None
 
+
 def open_signals():
     return _all("SELECT * FROM signals WHERE status='open'")
+
 
 def update_signal(sid, status):
     _exec("UPDATE signals SET status=%s, closed=%s WHERE id=%s",
           (status, int(time.time()), sid))
 
+
 def record_delivery(sid, uid):
     _exec("INSERT INTO deliveries(signal_id,user_id) VALUES(%s,%s) ON CONFLICT DO NOTHING",
           (sid, uid))
 
+
 def signal_recipients(sid):
     return [r["user_id"] for r in _all("SELECT user_id FROM deliveries WHERE signal_id=%s", (sid,))]
+
 
 def stats_overall():
     rows = _all("SELECT status, COUNT(*) n FROM signals WHERE status!='open' GROUP BY status")
@@ -225,11 +257,14 @@ def stats_overall():
     return {"wins": wins, "losses": losses, "expired": d.get("expired", 0),
             "total": total, "winrate": round(100 * wins / total, 1) if total else 0.0}
 
+
 def latest_signals(n=5):
     return _all("SELECT * FROM signals ORDER BY id DESC LIMIT %s", (n,))
 
+
 def get_signal(sid):
     return _one("SELECT * FROM signals WHERE id=%s", (sid,))
+
 
 def upsert_screen(sym, bull, bear, price, rsi):
     _exec(
@@ -238,8 +273,10 @@ def upsert_screen(sym, bull, bear, price, rsi):
            price=EXCLUDED.price, rsi=EXCLUDED.rsi, updated=EXCLUDED.updated""",
         (sym, bull, bear, price, rsi, int(time.time())))
 
+
 def screener_top(n=30):
     return _all("SELECT * FROM screener ORDER BY bull DESC LIMIT %s", (n,))
+
 
 def get_prefs(uid):
     u = user(uid)
@@ -252,10 +289,12 @@ def get_prefs(uid):
     p.setdefault("abnormal_signals", False)
     return p
 
+
 def set_pref(uid, key, val):
     p = get_prefs(uid)
     p[key] = bool(val)
     _exec("UPDATE users SET prefs=%s WHERE id=%s", (json.dumps(p), uid))
+
 
 def journal_add(uid, symbol, side, entry, sl, tp, result_pct, note=""):
     _exec(
@@ -263,8 +302,10 @@ def journal_add(uid, symbol, side, entry, sl, tp, result_pct, note=""):
            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
         (uid, symbol.upper(), side, entry, sl, tp, result_pct, note, int(time.time())))
 
+
 def journal_list(uid, n=10):
     return _all("SELECT * FROM journal WHERE user_id=%s ORDER BY id DESC LIMIT %s", (uid, n))
+
 
 def journal_stats(uid):
     rows = _all("SELECT result_pct FROM journal WHERE user_id=%s", (uid,))
@@ -274,6 +315,7 @@ def journal_stats(uid):
     wins = sum(1 for x in rs if x > 0)
     return {"n": len(rs), "winrate": round(100 * wins / len(rs), 1),
             "total_pct": round(sum(rs), 2)}
+
 
 def paper_open(uid, s, qty_usd=100.0):
     c = _conn()
@@ -289,20 +331,26 @@ def paper_open(uid, s, qty_usd=100.0):
     c.close()
     return pid
 
+
 def paper_list(uid, status="open"):
     return _all("SELECT * FROM paper_trades WHERE user_id=%s AND status=%s ORDER BY id DESC",
                 (uid, status))
 
+
 def paper_close(pid, pnl_pct):
     _exec("UPDATE paper_trades SET status='closed', pnl_pct=%s, closed=%s WHERE id=%s",
           (pnl_pct, int(time.time()), pid))
+
+
 
 """Minimal Telegram Bot API client (urllib, no extra deps)."""
 import json
 import urllib.request
 import mimetypes
 
+
 BASE = "https://api.telegram.org/bot"
+
 
 def _post(method, payload, token=None):
     token = token or config.BOT_TOKEN
@@ -312,12 +360,14 @@ def _post(method, payload, token=None):
     with urllib.request.urlopen(req, timeout=40) as r:
         return json.load(r)
 
+
 def send_message(chat_id, text, reply_markup=None, parse_mode="HTML"):
     p = {"chat_id": chat_id, "text": text, "parse_mode": parse_mode,
          "disable_web_page_preview": True}
     if reply_markup:
         p["reply_markup"] = reply_markup
     return _post("sendMessage", p)
+
 
 def _multipart(fields, files):
     boundary = "----apexbound"
@@ -330,6 +380,7 @@ def _multipart(fields, files):
                  f"filename=\"{fname}\"\r\nContent-Type: {ctype}\r\n\r\n").encode() + data + b"\r\n"
     body += f"--{boundary}--\r\n".encode()
     return body, boundary
+
 
 def send_photo(chat_id, photo_path, caption=None, reply_markup=None):
     token = config.BOT_TOKEN
@@ -348,8 +399,11 @@ def send_photo(chat_id, photo_path, caption=None, reply_markup=None):
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)
 
+
 def answer_callback(callback_id, text=""):
     return _post("answerCallbackQuery", {"callback_query_id": callback_id, "text": text})
+
+
 
 """APEX confluence engine — Python port of the TradingView 'SMPS APEX v2' logic.
 
@@ -367,6 +421,7 @@ BINANCE_HOSTS = [
     "https://api2.binance.com",
 ]
 
+
 def _get(path, params):
     last = None
     for host in BINANCE_HOSTS:
@@ -378,6 +433,7 @@ def _get(path, params):
             last = e
     raise last
 
+
 # ── market data ────────────────────────────────────────────────
 def klines(symbol, interval, limit=config.KLIMIT):
     data = _get("/api/v3/klines",
@@ -388,6 +444,7 @@ def klines(symbol, interval, limit=config.KLIMIT):
         d[k] = d[k].astype(float)
     d["t"] = pd.to_datetime(d["ct"], unit="ms")
     return d
+
 
 def top_usdt_symbols(n):
     """Top-n USDT spot pairs by 24h quote volume, minus stables/leveraged."""
@@ -403,15 +460,18 @@ def top_usdt_symbols(n):
             syms.append(s)
     return syms
 
+
 # ── indicators ─────────────────────────────────────────────────
 def ema(s, n):
     return s.ewm(span=n, adjust=False).mean()
+
 
 def atr(df, n=14):
     h, l, c = df["h"], df["l"], df["c"]
     pc = c.shift(1)
     tr = pd.concat([h - l, (h - pc).abs(), (l - pc).abs()], axis=1).max(axis=1)
     return tr.ewm(alpha=1 / n, adjust=False).mean()
+
 
 def supertrend(df, mult=3.0, length=10):
     a = atr(df, length)
@@ -438,6 +498,7 @@ def supertrend(df, mult=3.0, length=10):
         st.iloc[i] = lo.iloc[i] if d.iloc[i] == -1 else up.iloc[i]
     return st, d
 
+
 def dmi_adx(df, n=14):
     h, l, c = df["h"], df["l"], df["c"]
     up = h.diff()
@@ -454,16 +515,19 @@ def dmi_adx(df, n=14):
     adx = dx.ewm(alpha=1 / n, adjust=False).mean()
     return pdi, mdi, adx
 
+
 def rsi(s, n=14):
     d = s.diff()
     g = d.clip(lower=0).ewm(alpha=1 / n, adjust=False).mean()
     l = (-d.clip(upper=0)).ewm(alpha=1 / n, adjust=False).mean()
     return 100 - 100 / (1 + g / l.replace(0, np.nan))
 
+
 def macd(s, f=12, sl=26, sig=9):
     m = ema(s, f) - ema(s, sl)
     sg = ema(m, sig)
     return m - sg
+
 
 def stoch_kd(df, n=14, k=3, d=3):
     ll = df["l"].rolling(n).min()
@@ -473,6 +537,7 @@ def stoch_kd(df, n=14, k=3, d=3):
     D = K.rolling(d).mean()
     return K, D
 
+
 def mfi(df, n=14):
     tp = (df["h"] + df["l"] + df["c"]) / 3
     rmf = tp * df["v"]
@@ -480,6 +545,7 @@ def mfi(df, n=14):
     neg = pd.Series(np.where(tp < tp.shift(1), rmf, 0.0), index=df.index)
     mfr = pos.rolling(n).sum() / neg.rolling(n).sum().replace(0, np.nan)
     return 100 - 100 / (1 + mfr)
+
 
 # ── confluence ─────────────────────────────────────────────────
 def analyze(symbol):
@@ -595,7 +661,10 @@ def analyze(symbol):
         "df": df, "signal": sig,
     }
 
+
+
 """Dark TradingView-style signal charts (matplotlib)."""
+
 
 def _candles(ax, df):
     up = df["c"] >= df["o"]
@@ -604,6 +673,7 @@ def _candles(ax, df):
         ax.bar(d.index, d["h"] - d["l"], 0.7, bottom=d["l"], color=col, zorder=2)
         ax.bar(d.index, (d["c"] - d["o"]).abs(), 0.9,
                bottom=d[["o", "c"]].min(axis=1), color=col, zorder=3)
+
 
 def signal_chart(analysis, sig, path):
     df = analysis["df"].iloc[-90:].copy().reset_index(drop=True)
@@ -657,6 +727,7 @@ def signal_chart(analysis, sig, path):
     plt.close(fig)
     return path
 
+
 def analysis_chart(analysis, path):
     """Chart without a signal — for /analyze."""
     df = analysis["df"].iloc[-90:].copy().reset_index(drop=True)
@@ -681,31 +752,49 @@ def analysis_chart(analysis, path):
     plt.close(fig)
     return path
 
+
 """Telegram webhook command logic (stateless, for serverless)."""
+
+
 
 def fmt(x):
     return f"{x:,.4g}"
 
+
 def pct(a, b):
     return (b - a) / a * 100 if a else 0
+
 
 def signal_text(s):
     s = dict(s)
     side_e = "🟢 LONG" if s["side"] == "LONG" else "🔴 SHORT"
     e, sl = s["entry"], s["sl"]
     tps = [s["tp1"], s["tp2"], s["tp3"], s["tp4"]]
+    st = s.get("status", "open")
+    lvl = {"tp1": 1, "tp2": 2, "tp3": 3, "tp4": 4}.get(st, 0)
+    sl_mark = " ❌" if st == "sl" else ""
     lines = [
         f"{side_e} | <b>{s['symbol']}</b> ({s['tf']})",
         f"✅ <b>VALIDATOR Score: {s['score']}/100</b>",
         "",
         f"🎯 Entry: <code>{fmt(e)}</code>",
-        f"🛑 SL: <code>{fmt(sl)}</code> ({pct(e, sl):+.2f}%)",
+        f"🛑 SL{sl_mark}: <code>{fmt(sl)}</code> ({pct(e, sl):+.2f}%)",
         "",
     ]
     for i, tp in enumerate(tps, 1):
-        lines.append(f"🎯 TP{i}: <code>{fmt(tp)}</code> ({pct(e, tp):+.2f}%)")
+        mk = " ✅" if lvl >= i else ""
+        lines.append(f"🎯 TP{i}{mk}: <code>{fmt(tp)}</code> ({pct(e, tp):+.2f}%)")
+    if st == "tp4":
+        lines += ["", "🎯 <b>تەواو — هەموو TP پێکا ✅</b>"]
+    elif st in ("tp1", "tp2", "tp3"):
+        lines += ["", f"✅ <b>{st.upper()} پێکا!</b>"]
+    elif st == "sl":
+        lines += ["", "🛑 <b>تەواو — ستۆپ گرت ❌</b>"]
+    elif st == "expired":
+        lines += ["", "⌛ <b>بەسەرچوو</b>"]
     lines += ["", f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}"]
     return "\n".join(lines)
+
 
 def kb_main():
     rows = [
@@ -717,6 +806,7 @@ def kb_main():
     if config.WEBAPP_URL:
         rows.insert(0, [{"text": "🚀 کردنەوەی ئەپ", "web_app": {"url": config.WEBAPP_URL}}])
     return {"inline_keyboard": rows}
+
 
 def cmd_start(chat_id, user, args):
     ref_by = 0
@@ -738,11 +828,13 @@ def cmd_start(chat_id, user, args):
         "فەرمانەکان: /signals /analyze /stats /journal /subscribe /referral",
         reply_markup=kb_main())
 
+
 def cmd_signals(chat_id):
     for s in latest_signals(5):
         send_message(chat_id, signal_text(s))
     if not latest_signals(1):
         send_message(chat_id, "هێشتا سیگناڵ نییە ⏳")
+
 
 def cmd_analyze(chat_id, args):
     if not args:
@@ -776,6 +868,7 @@ def cmd_analyze(chat_id, args):
         if os.path.exists(path):
             os.remove(path)
 
+
 def cmd_stats(chat_id):
     s = stats_overall()
     send_message(chat_id,
@@ -783,6 +876,7 @@ def cmd_stats(chat_id):
         f"🏆 Win-rate: <b>{s['winrate']}%</b>\n"
         f"✅ براوە: {s['wins']} | ❌ دۆڕاو: {s['losses']}\n"
         f"⌛ بەسەرچوو: {s['expired']} | 📡 کۆی سیگناڵ: {s['total']}")
+
 
 def cmd_journal(chat_id, uid):
     rows = journal_list(uid)
@@ -798,6 +892,7 @@ def cmd_journal(chat_id, uid):
         lines.append(f"{e} {r['symbol']} {r['result_pct']:+.1f}%")
     send_message(chat_id, "\n".join(lines))
 
+
 def cmd_log(chat_id, uid, args):
     try:
         sym, side = args[0].upper(), args[1].upper()
@@ -810,6 +905,7 @@ def cmd_log(chat_id, uid, args):
     journal_add(uid, sym, side, entry, sl, tp, res, note)
     send_message(chat_id, "✅ تۆمارکرا")
 
+
 def cmd_subscribe(chat_id, uid):
     u = user(uid)
     plan = "💎 VIP" if is_vip(u) else "🆓 Free"
@@ -819,6 +915,7 @@ def cmd_subscribe(chat_id, uid):
         "💎 VIP: سیگناڵی بێسنوور\n\n"
         f"🎁 {config.REFS_FOR_VIP} ڕێفەڕاڵ = {config.VIP_DAYS_PER_REF_MILESTONE} ڕۆژ VIP بەخۆڕایی!")
 
+
 def cmd_referral(chat_id, uid):
     u = user(uid)
     bot_un = os.environ.get("BOT_USERNAME", "ggkurdbot")
@@ -826,6 +923,7 @@ def cmd_referral(chat_id, uid):
     send_message(chat_id,
         f"🎁 <b>ڕێفەڕاڵ</b>\n\nلینکەکەت:\n<code>{link}</code>\n\n"
         f"👥 ڕێفەڕاڵەکانت: <b>{u['ref_count'] if u else 0}</b>")
+
 
 def on_callback(chat_id, cq):
     data = cq.get("data", "")
@@ -838,6 +936,7 @@ def on_callback(chat_id, cq):
         cmd_referral(chat_id, cq["from"]["id"])
     elif data == "help_analyze":
         send_message(chat_id, "نموونە: <code>/analyze BTCUSDT</code>")
+
 
 def handle_update(update):
     if "callback_query" in update:
@@ -876,7 +975,11 @@ def handle_update(update):
     elif cmd == "/referral":
         cmd_referral(chat_id, user["id"])
 
+
+
 """Scanner: analyze symbols, emit signals, track outcomes. Used by GitHub Actions."""
+
+
 
 def scan_once():
     print("scan start", flush=True)
@@ -933,6 +1036,7 @@ def scan_once():
             time.sleep(0.4)
         print(f"signal {sym} {s['side']} -> {sent} users", flush=True)
 
+
 def track_outcomes():
     print("outcome check start", flush=True)
     for row in open_signals():
@@ -975,10 +1079,16 @@ def track_outcomes():
                     pass
                 time.sleep(0.3)
 
+
+
 """Vercel entrypoint: single FastAPI app mounted at /api/*.
 
 Routes are defined WITHOUT the /api prefix — Vercel mounts this app at /api.
 """
+
+
+
+
 
 @asynccontextmanager
 async def lifespan(app):
@@ -988,7 +1098,9 @@ async def lifespan(app):
         print("db init failed at startup:", str(e)[:200])
     yield
 
+
 app = FastAPI(lifespan=lifespan)
+
 
 # ── Telegram WebApp initData auth ────────────────────────────
 def validate_init_data(init_data):
@@ -1010,6 +1122,7 @@ def validate_init_data(init_data):
     except Exception:
         return None
 
+
 async def authed_user(request: Request):
     init_data = request.headers.get("x-telegram-init-data", "")
     if not init_data:
@@ -1021,11 +1134,13 @@ async def authed_user(request: Request):
     register(uid, tg_user.get("username", ""), tg_user.get("first_name", ""))
     return uid, tg_user
 
+
 def sig_dict(s):
     s = dict(s)
     return {k: s[k] for k in
             ("id", "symbol", "tf", "side", "entry", "sl", "tp1", "tp2", "tp3", "tp4",
              "score", "created", "status")}
+
 
 @app.get("/api/me")
 async def me(request: Request):
@@ -1037,6 +1152,7 @@ async def me(request: Request):
             "ref_count": u["ref_count"] if u else 0,
             "prefs": get_prefs(uid)}
 
+
 @app.post("/api/prefs")
 async def prefs(request: Request):
     uid, _ = await authed_user(request)
@@ -1046,21 +1162,25 @@ async def prefs(request: Request):
         set_pref(uid, key, val)
     return {"prefs": get_prefs(uid)}
 
+
 @app.get("/api/signals")
 async def signals(request: Request):
     await authed_user(request)
     return [sig_dict(s) for s in latest_signals(20)]
 
+
 @app.get("/api/stats")
 async def stats(request: Request):
     await authed_user(request)
-    return [sig_dict(dict(r)) for r in latest_signals(50) if dict(r)["status"] != "open"][:10]
+    closed = [sig_dict(dict(r)) for r in latest_signals(50) if dict(r)["status"] != "open"][:10]
     return {"overall": stats_overall(), "recent": closed}
+
 
 @app.get("/api/screener")
 async def screener(request: Request):
     await authed_user(request)
     return [dict(r) for r in screener_top(30)]
+
 
 @app.get("/api/chart/{sid}")
 async def chart(sid: int, request: Request):
@@ -1079,6 +1199,7 @@ async def chart(sid: int, request: Request):
             raise HTTPException(404)
     return FileResponse(path, media_type="image/png")
 
+
 @app.post("/api/paper")
 async def paper(request: Request):
     uid, _ = await authed_user(request)
@@ -1088,6 +1209,7 @@ async def paper(request: Request):
         raise HTTPException(404, "signal not found")
     pid = paper_open(uid, dict(s), float(body.get("qty_usd", 100)))
     return {"paper_id": pid}
+
 
 @app.get("/api/portfolio")
 async def portfolio(request: Request):
@@ -1108,6 +1230,7 @@ async def portfolio(request: Request):
     closed = [dict(t) for t in paper_list(uid, "closed")]
     return {"open": out, "closed": closed[-10:]}
 
+
 @app.post("/api/paper-close")
 async def paper_close(request: Request):
     uid, _ = await authed_user(request)
@@ -1127,6 +1250,7 @@ async def paper_close(request: Request):
     paper_close(pid, round(pnl, 2))
     return {"pnl_pct": round(pnl, 2)}
 
+
 @app.post("/api/telegram")
 async def telegram_webhook(request: Request):
     update = await request.json()
@@ -1136,9 +1260,11 @@ async def telegram_webhook(request: Request):
         print("webhook error:", e)
     return {"ok": True}
 
+
 @app.get("/api/health")
 async def health():
     return {"ok": True}
+
 
 # --- Serve the Mini App (index.html) from the function itself ---
 # (Vercel routes every path to this function, so the app must serve its own HTML)
