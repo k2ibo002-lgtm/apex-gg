@@ -224,8 +224,12 @@ function sigCard(s){
       <div class="tp"><span>TP3${hit(3)}</span><b>${f4(s.tp3)}</b></div>
       <div class="tp"><span>TP4${hit(4)}</span><b>${f4(s.tp4)}</b></div>
     </div>
-    <img class="chart" loading="lazy" src="/api/chart/${s.id}" alt="chart">
-    <div class="time">${dt(s.created)} • ${s.tf}</div>
+    
+<img class="chart" loading="lazy" src="/api/chart/${s.id}?initData=${encodeURIComponent(INIT)}" alt="chart">
+
+
+    
+      <div class="time">${dt(s.created)} • ${s.tf}</div>
     <div style="height:8px"></div>
     <button class="btn" onclick="enterPaper(${s.id}, this)">ENTER — paper trade 📝</button>
   </div>`;
