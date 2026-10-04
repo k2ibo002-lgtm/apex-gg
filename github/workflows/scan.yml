@@ -1,0 +1,23 @@
+name: APEX signal scanner
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install pandas numpy requests psycopg2-binary
+      - name: Run scanner
+        run: python scanner_job.py
+        env:
+          APEX_BOT_TOKEN: ${{ secrets.APEX_BOT_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
