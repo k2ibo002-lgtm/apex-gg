@@ -1154,12 +1154,3 @@ def _serve_index():
         if os.path.exists(p):
             return FileResponse(p, media_type="text/html; charset=utf-8")
     return JSONResponse({"detail": "index.html not bundled"}, status_code=500)
-```
-
-⚠️ **پشکنین:** لە کۆتایی ئەوەی کە paste دەکەیت دەبێت ئەمە ببینیت:
-```python
-    return JSONResponse({"detail": "index.html not bundled"}, status_code=500)
-```
-ئەگەر ئەمە نەبوو، واتە کۆپیەکە تەواو نەبووە — دووبارە کۆپی بکە.
-
-پاشان: **Commit** → هەرچەند Vercel خۆکارانە redeploy دەکات → **Actions** → **Re-run jobs**
