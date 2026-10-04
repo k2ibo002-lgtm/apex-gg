@@ -1,7 +1,7 @@
 """APEX all-in-one backend for Vercel (single FastAPI function)."""
 
 
-import os, sys, json, time, hashlib, hmac, urllib.parse, urllib.request, mimetypes
+import os, sys, json, time, math, hashlib, hmac, urllib.parse, urllib.request, mimetypes
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -840,7 +840,37 @@ def analysis_chart(analysis, path):
 
 
 def fmt(x):
-    return f"{x:,.4g}"
+    """Smart price formatting: no scientific notation, adaptive decimals."""
+    try:
+        x = float(x)
+    except Exception:
+        return str(x)
+    if x == 0:
+        return "0"
+    ax = abs(x)
+    if ax >= 1000:
+        s = f"{x:,.2f}"
+    elif ax >= 1:
+        s = f"{x:.4f}"
+    elif ax >= 0.01:
+        s = f"{x:.6f}"
+    else:
+        dec = max(2, min(12, -math.floor(math.log10(ax)) + 4))
+        s = f"{x:.{dec}f}"
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s
+
+
+def price_precision(px):
+    """Decimals needed to display a price sensibly (2..10)."""
+    try:
+        px = float(px)
+    except Exception:
+        return 2
+    if px <= 0:
+        return 2
+    return max(2, min(10, -math.floor(math.log10(px)) + 2))
 
 
 def pct(a, b):
