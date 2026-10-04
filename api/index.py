@@ -1239,3 +1239,18 @@ async def telegram_webhook(request: Request):
 @app.get("/api/health")
 async def health():
     return {"ok": True}
+
+# --- Serve the Mini App (index.html) from the function itself ---
+@app.get("/", include_in_schema=False)
+def _serve_index():
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.normpath(os.path.join(here, "..", "index.html")),
+        os.path.normpath(os.path.join(os.getcwd(), "index.html")),
+        "/var/task/index.html",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return FileResponse(p, media_type="text/html; charset=utf-8")
+    return JSONResponse({"detail": "index.html not bundled"}, status_code=500)
+
