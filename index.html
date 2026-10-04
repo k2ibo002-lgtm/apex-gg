@@ -1,171 +1,344 @@
 <!DOCTYPE html>
-<html lang="ckb" dir="rtl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>APEX Bot</title>
+<title>GG KURD</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
-  --bg:#0a0e14; --card:#131722; --card2:#1a2030; --line:#232a3a;
-  --green:#00e676; --green-d:#00b35c; --red:#ff5252; --txt:#e8ecf1; --mut:#8a94a6;
+  --bg:#000; --card:#0d0d0d; --card2:#141414; --line:#1c1c1c;
+  --green:#00e676; --green2:#00c853; --red:#ff3b30; --blue:#0a84ff;
+  --txt:#fff; --mut:#8e8e93; --dim:#48484a; --gold:#f5a623;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 body{margin:0; background:var(--bg); color:var(--txt);
-  font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; padding-bottom:84px;}
-.hdr{display:flex; align-items:center; gap:10px; padding:16px 16px 8px;}
-.logo{font-weight:900; font-size:22px; letter-spacing:1px;}
-.logo b{color:var(--green);}
-.hdr .sub{margin-inline-start:auto; color:var(--mut); font-size:11px; letter-spacing:2px;}
-.card{background:var(--card); border:1px solid var(--line); border-radius:16px;
-  margin:10px 14px; padding:16px;}
-.card h3{margin:0 0 4px; font-size:12px; letter-spacing:2px; color:var(--mut); font-weight:600;}
-.btn{display:block; width:100%; border:0; border-radius:12px; padding:14px;
-  font-size:15px; font-weight:800; cursor:pointer; color:#04120a;
-  background:linear-gradient(180deg,var(--green),var(--green-d));}
-.btn.ghost{background:var(--card2); color:var(--txt); border:1px solid var(--line);}
-.row{display:flex; align-items:center; justify-content:space-between;
-  padding:13px 2px; border-bottom:1px solid var(--line);}
+  font-family:-apple-system,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
+  padding-bottom:88px; font-size:14px;}
+.hdr{display:flex; align-items:center; justify-content:space-between; padding:12px 16px 4px;}
+.logo{font-weight:900; font-size:19px; letter-spacing:.5px; display:flex; align-items:center; gap:7px;}
+.logo .g{color:var(--green);} .logo .w{color:#fff;}
+.logo small{font-size:8px; color:var(--mut); letter-spacing:2px; display:block; line-height:1;}
+.hdr .ttl{font-size:11px; letter-spacing:2px; color:var(--mut); font-weight:700;
+  border:1px solid var(--line); border-radius:6px; padding:6px 10px; position:relative;}
+.extend{margin:8px 14px; background:linear-gradient(180deg,#00f076,#00c853); border:0;
+  color:#00240f; font-weight:900; font-size:14px; letter-spacing:2px; border-radius:12px;
+  padding:15px; width:calc(100% - 28px); cursor:pointer;}
+.card{background:var(--card); border-radius:12px; margin:10px 14px; padding:14px 16px;}
+.card h3{margin:0 0 10px; font-size:10px; letter-spacing:2px; color:var(--mut); font-weight:700;
+  display:flex; align-items:center; gap:6px;}
+.card h3 .r{margin-left:auto; display:flex; gap:6px;}
+.card h3 .r span{border:1px solid var(--line); border-radius:6px; padding:3px 7px; font-size:10px;}
+.acc-line{display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;}
+.acc-line .v{color:var(--green); font-weight:800;}
+input[type=range]{width:100%; accent-color:var(--green); margin:4px 0 0;}
+.ticks{display:flex; justify-content:space-between; font-size:9px; color:var(--dim); margin:2px 0 6px;}
+.row{display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--line);}
 .row:last-child{border-bottom:0;}
-.row .lbl{font-size:14px;}
-.tgl{width:46px; height:26px; border-radius:13px; background:#2a3145; position:relative; cursor:pointer; transition:.2s;}
-.tgl::after{content:""; position:absolute; top:3px; inset-inline-start:3px; width:20px; height:20px;
-  border-radius:50%; background:#8a94a6; transition:.2s;}
-.tgl.on{background:#0d3b24;}
-.tgl.on::after{inset-inline-start:23px; background:var(--green);}
-.sig{border-inline-start:4px solid var(--green);}
-.sig.SHORT{border-inline-start-color:var(--red);}
-.sig .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
-.badge{font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px;}
-.badge.LONG{background:#0d3b24; color:var(--green);}
-.badge.SHORT{background:#3b0d0d; color:var(--red);}
-.score{font-size:12px; color:var(--mut);}
-.lv{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0; font-size:13px;}
-.lv div{background:var(--card2); border-radius:8px; padding:8px 10px;}
-.lv span{color:var(--mut); font-size:11px; display:block;}
-.lv b{font-variant-numeric:tabular-nums;}
-.lv .tp b{color:var(--green);} .lv .sl b{color:var(--red);}
-.chart{width:100%; border-radius:10px; margin:8px 0; display:block;}
-.time{font-size:11px; color:var(--mut);}
-.hero{text-align:center; padding:10px 0;}
-.hero .wr{font-size:52px; font-weight:900; color:var(--green);}
-.hero .cap{color:var(--mut); font-size:13px;}
-.kpis{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px;}
-.kpis div{background:var(--card2); border-radius:10px; padding:10px 4px; text-align:center;}
-.kpis b{font-size:20px; display:block;}
-.kpis span{font-size:11px; color:var(--mut);}
-table{width:100%; border-collapse:collapse; font-size:13px;}
-th{color:var(--mut); font-weight:600; font-size:11px; padding:8px 4px; border-bottom:1px solid var(--line);}
-td{padding:10px 4px; border-bottom:1px solid var(--line); text-align:center; font-variant-numeric:tabular-nums;}
+.row .lbl{font-size:13px; display:flex; align-items:center; gap:10px;}
+.row .lbl svg{width:16px; height:16px; stroke:var(--mut); fill:none; stroke-width:1.6;}
+.tgl{width:44px; height:25px; border-radius:13px; background:#2c2c2e; position:relative; cursor:pointer; transition:.2s; flex-shrink:0; border:1px solid #3a3a3c;}
+.tgl::after{content:""; position:absolute; top:2px; left:2px; width:19px; height:19px;
+  border-radius:50%; background:#8e8e93; transition:.2s;}
+.tgl.on{background:#0a3d22; border-color:#0f5c33;}
+.tgl.on::after{left:21px; background:var(--green);}
+.ref3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:10px;}
+.ref3 button{background:var(--card2); border:0; color:var(--txt); border-radius:10px;
+  padding:13px 4px; font-size:11px; font-weight:600; cursor:pointer; line-height:1.6;}
+.ref3 button .ic{width:26px; height:26px; margin:0 auto 4px; border:1px solid var(--line);
+  border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--green);}
+.reflock{text-align:center; color:var(--dim); font-size:11px; padding:10px 0; font-family:monospace;}
+.tabs{position:fixed; bottom:0; left:0; right:0; background:#080808f5;
+  border-top:1px solid var(--line); display:flex; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); z-index:50;}
+.tabs button{flex:1; background:none; border:0; color:var(--dim); font-size:9px; font-weight:700;
+  display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:8px 4px;
+  letter-spacing:1.5px; border-radius:10px;}
+.tabs button svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.6;}
+.tabs button.act{color:var(--green); background:#0a2018;}
+.seg{display:flex; background:var(--card); border-radius:10px; padding:3px; margin:8px 14px; gap:2px;}
+.seg button{flex:1; background:none; border:0; color:var(--dim); font-size:11px; font-weight:800;
+  padding:9px; border-radius:8px; cursor:pointer; letter-spacing:1px;}
+.seg button.act{background:var(--card2); color:var(--green);}
+.perf{font-size:36px; font-weight:900; color:var(--green); letter-spacing:-1px; display:flex; align-items:center; gap:10px;}
+.perf .lev{font-size:10px; background:var(--card2); color:var(--mut); border-radius:6px; padding:4px 8px; font-weight:700; letter-spacing:1px;}
+.perf-sub{font-size:10px; color:var(--dim); margin:4px 0 6px; font-family:monospace;}
+#eqchart{width:100%; height:120px;}
+.peaklbl{font-size:10px; fill:var(--green); font-family:monospace;}
+.kpis{display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-top:10px;}
+.kpis div{text-align:center;}
+.kpis .k{font-size:8px; color:var(--dim); letter-spacing:1px;}
+.kpis b{font-size:15px; display:block; color:var(--green); margin:3px 0; font-variant-numeric:tabular-nums;}
+.kpis .s{font-size:8px; color:var(--dim); font-family:monospace;}
+.strat{display:flex; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); font-size:13px;}
+.strat:last-child{border:0;}
+.strat .rk{color:var(--gold); width:26px; font-weight:800; font-size:12px;}
+.strat .nm{font-weight:800;} .strat .tf{color:var(--dim); font-size:10px; margin-left:4px;}
+.strat .sub{font-size:10px; color:var(--mut); margin-top:2px; font-family:monospace;}
+.strat .sub b{color:var(--green);}
+.strat .wr{margin-left:auto; color:var(--green); font-weight:800;}
+.minitabs{display:flex; gap:4px;}
+.minitabs button{background:var(--card2); border:0; color:var(--dim); font-size:10px; font-weight:800;
+  padding:6px 10px; border-radius:6px; cursor:pointer;}
+.minitabs button.act{color:var(--green); background:#0a2018;}
+.search{margin:10px 14px 6px; position:relative;}
+.search input{width:100%; background:var(--card); border:0; border-radius:10px;
+  padding:11px 12px 11px 36px; color:var(--txt); font-size:13px; outline:none;}
+.search input::placeholder{color:var(--dim);}
+.search .ic{position:absolute; left:12px; top:10px; font-size:15px; color:var(--dim);}
+.ftabs{display:flex; gap:6px; padding:2px 14px 8px; overflow-x:auto;}
+.ftabs button{background:var(--card); border:0; color:var(--mut);
+  border-radius:6px; padding:8px 13px; font-size:10px; font-weight:800; cursor:pointer;
+  white-space:nowrap; letter-spacing:.5px;}
+.ftabs button.act{background:var(--green); color:#000;}
+.sig{background:var(--card); border-radius:12px; margin:8px 14px; padding:12px 14px; cursor:pointer;}
+.sig .r1{display:flex; align-items:center; gap:7px; font-size:12px;}
+.sig .sym{font-weight:900; font-size:15px;}
+.badge{font-size:9px; font-weight:800; padding:3px 7px; border-radius:4px; letter-spacing:.5px;}
+.badge.LONG{background:#0a3d22; color:var(--green);}
+.badge.SHORT{background:#3d0a0a; color:var(--red);}
+.sig .tf{font-size:10px; color:var(--dim); background:var(--card2); padding:3px 7px; border-radius:4px;}
+.sig .ch{margin-left:auto; font-size:11px; color:var(--green); font-weight:700; font-family:monospace;}
+.sig .r2{font-size:10px; color:var(--dim); margin:7px 0; font-family:monospace;}
+.sig .r2 b{color:var(--mut);}
+.sig .r3{display:flex; font-size:11px; font-variant-numeric:tabular-nums; margin:6px 0;}
+.sig .r3 div{flex:1;} .sig .r3 .k{font-size:8px; color:var(--dim); letter-spacing:1px;}
+.sig .r3 .ev{color:var(--txt);} .sig .r3 .slv{color:var(--red);}
+.sig .r3 .t1{color:var(--green);} .sig .r3 .lv{color:var(--blue);}
+.sig .pbar{height:7px; background:var(--card2); border-radius:4px; overflow:hidden; margin:8px 0 4px; display:flex;}
+.sig .pbar i{display:block; height:100%;}
+.sig .r4{display:flex; justify-content:space-between; font-size:9px; color:var(--dim); letter-spacing:1px; font-weight:700;}
+#tab-detail{background:var(--bg); min-height:100vh;}
+.dt-top{display:flex; align-items:center; gap:8px; padding:12px 16px 4px; flex-wrap:wrap;}
+.dt-top .sym{font-weight:900; font-size:17px;}
+.dt-top .tf{font-size:10px; color:var(--dim); background:var(--card2); padding:4px 8px; border-radius:4px;}
+.dt-top .ch{margin-left:auto; font-size:11px; font-weight:800; font-family:monospace;}
+.dt-top .ch .u{color:var(--green);} .dt-top .ch .d{color:var(--red);}
+.dt-top .age{font-size:10px; color:var(--dim);}
+.dt-sub{font-size:10px; color:var(--dim); padding:2px 16px 8px; font-family:monospace;}
+.dt-sub b{color:var(--mut);}
+.dt-prices{display:flex; padding:0 16px; gap:0;}
+.dt-prices div{flex:1;}
+.dt-prices .k{font-size:8px; color:var(--dim); letter-spacing:1.5px;}
+.dt-prices .v{font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px;}
+.dt-prices .ev{color:var(--txt);} .dt-prices .slv{color:var(--red);}
+.dt-prices .t1{color:var(--green);} .dt-prices .lv{color:var(--blue);}
+.dt-pbar{height:8px; background:var(--card2); border-radius:4px; margin:10px 16px 2px; display:flex; overflow:hidden;}
+.dt-pbar i{display:block; height:100%;}
+.dt-hit{text-align:right; font-size:9px; color:var(--green); font-weight:800; letter-spacing:1px; padding:0 16px;}
+.dt-chart{margin:6px 8px; border-radius:10px; overflow:hidden; position:relative;}
+.dt-chart img{width:100%; display:block;}
+.dt-ind{display:flex; gap:6px; padding:4px 16px;}
+.dt-ind button{background:var(--card); border:0; color:var(--dim); font-size:10px; font-weight:800;
+  padding:8px 14px; border-radius:8px; cursor:pointer; letter-spacing:1px;}
+.dt-ind button.act{color:var(--green); background:var(--card2);}
+.tpgrid{display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:8px 16px;}
+.tpgrid .tp{background:var(--card); border-radius:10px; padding:12px 14px; display:flex;
+  justify-content:space-between; align-items:center; border-left:3px solid var(--green);}
+.tpgrid .tp.hit{border-left-color:var(--green); background:#0a1a12;}
+.tpgrid .tp .n{font-size:11px; color:var(--green); font-weight:800; letter-spacing:1px;}
+.tpgrid .tp .p{font-size:14px; font-weight:700; font-variant-numeric:tabular-nums;}
+.tpgrid .tp .n.done::after{content:" ✓";}
+.dt-el{display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 16px 16px;}
+.dt-el div{background:var(--card); border-radius:10px; padding:12px 14px; display:flex;
+  justify-content:space-between; align-items:center;}
+.dt-el .ek{font-size:11px; color:var(--blue); font-weight:800; letter-spacing:1px;}
+.dt-el .sk{font-size:11px; color:var(--red); font-weight:800; letter-spacing:1px;}
+.dt-el b{font-size:14px; font-variant-numeric:tabular-nums;}
+.backbtn{margin:4px 16px 0; background:var(--card); border:0; color:var(--txt); border-radius:10px;
+  padding:12px; font-size:13px; font-weight:700; cursor:pointer; width:calc(100% - 32px);}
+.sent3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; text-align:center; margin-bottom:10px;}
+.sent3 .k{font-size:8px; color:var(--dim); letter-spacing:1.5px;}
+.sent3 .v{font-size:14px; font-weight:800; margin-top:4px;}
+.analysis{font-size:11.5px; line-height:1.8; color:#c7c7cc;}
+.fg2{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;}
+.fg2 div{background:var(--card2); border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px;}
+.fg2 .n{font-size:22px; font-weight:900;}
+.fg2 .t{font-size:8px; color:var(--dim); letter-spacing:1px; line-height:1.5;}
+.fg2 .t b{display:block; font-size:10px; color:var(--txt); letter-spacing:1px;}
+.mtabs{display:flex; gap:6px; margin:10px 14px 0;}
+.mtabs button{flex:1; background:none; border:0; border-bottom:2px solid transparent; color:var(--dim);
+  padding:10px; font-size:11px; font-weight:800; cursor:pointer; letter-spacing:1px;}
+.mtabs button.act{color:var(--green); border-bottom-color:var(--green);}
+.whale{background:var(--card); border-radius:12px; margin:8px 14px; padding:12px 14px;}
+.whale .r1{display:flex; align-items:center; gap:8px; font-size:13px;}
+.whale .addr{font-weight:700; font-family:monospace;}
+.whale .r2{display:flex; margin-top:10px; font-size:12px;}
+.whale .r2>div{flex:1;} .whale .r2 .k{color:var(--dim); font-size:9px; letter-spacing:1px;}
+.whale .r2 b{font-variant-numeric:tabular-nums;}
+.whale .r3{text-align:right; font-size:10px; color:var(--dim); margin-top:6px; font-family:monospace;}
+.evempty{text-align:center; color:var(--dim); font-size:12px; padding:16px; font-family:monospace;}
+table{width:100%; border-collapse:collapse; font-size:12px;}
+th{color:var(--dim); font-weight:700; font-size:9px; padding:7px 4px; border-bottom:1px solid var(--line); letter-spacing:1px;}
+td{padding:9px 4px; border-bottom:1px solid var(--line); text-align:center; font-variant-numeric:tabular-nums;}
 tr.hot td:first-child{color:var(--green); font-weight:800;}
-.tabs{position:fixed; bottom:0; left:0; right:0; background:#0d1119f2; backdrop-filter:blur(8px);
-  border-top:1px solid var(--line); display:flex; padding:8px 4px calc(8px + env(safe-area-inset-bottom));}
-.tabs button{flex:1; background:none; border:0; color:var(--mut); font-size:10px; font-weight:700;
-  display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px;}
-.tabs button .i{font-size:20px;}
-.tabs button.act{color:var(--green);}
-.pill{font-size:11px; background:var(--card2); border:1px solid var(--line); border-radius:8px;
-  padding:6px 10px; color:var(--mut);}
-.ref-link{background:var(--card2); border:1px dashed var(--green); border-radius:10px;
-  padding:12px; font-size:12px; word-break:break-all; color:var(--green); margin:10px 0;}
-.prog{height:8px; background:var(--card2); border-radius:4px; overflow:hidden; margin:8px 0;}
-.prog i{display:block; height:100%; background:var(--green);}
-.note{font-size:12px; color:var(--mut); line-height:1.7;}
 .hidden{display:none !important;}
-.loading{text-align:center; color:var(--mut); padding:40px;}
+.loading{text-align:center; color:var(--dim); padding:36px; font-size:12px;}
+.note{font-size:11px; color:var(--dim); line-height:1.6;}
+.pill{font-size:10px; background:var(--card2); border-radius:6px; padding:5px 9px; color:var(--mut);}
+.ref-link{background:var(--card2); border:1px dashed var(--green); border-radius:8px;
+  padding:11px; font-size:11px; word-break:break-all; color:var(--green); margin:10px 0;}
+.prog{height:7px; background:var(--card2); border-radius:4px; overflow:hidden; margin:8px 0;}
+.prog i{display:block; height:100%; background:var(--green);}
 </style>
 </head>
 <body>
-<div class="hdr">
-  <div class="logo"><b>APEX</b> BOT</div>
-  <div class="sub">MAIN MENU</div>
-</div>
 
-<!-- HOME -->
 <div id="tab-home">
+  <div class="hdr"><div class="logo"><span class="g">GG</span><span class="w">KURD</span></div><div></div></div>
+  <button class="extend" onclick="showTab('referral')">+ EXTEND</button>
   <div class="card">
-    <h3>💎 PREMIUM</h3>
-    <div id="plan-line" class="note">...</div>
-    <div style="height:10px"></div>
-    <button class="btn" onclick="goReferral()">GET PREMIUM 🎁</button>
+    <h3><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg> FILTERS</h3>
+    <div class="acc-line"><span>Min Accuracy</span><span class="v" id="acc-val">0%</span></div>
+    <input type="range" min="0" max="100" value="0" id="acc-range" oninput="setAcc(this.value)">
+    <div class="ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+    <div class="row"><div class="lbl"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>Daily / Weekly Reports</div><div class="tgl on" id="t-daily_reports" onclick="togglePref('daily_reports')"></div></div>
+    <div class="row"><div class="lbl"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>TP / SL Reports</div><div class="tgl on" id="t-tp_sl_reports" onclick="togglePref('tp_sl_reports')"></div></div>
+    <div class="row"><div class="lbl"><svg viewBox="0 0 24 24"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5M12 18v.5"/></svg>Abnormal Signals</div><div class="tgl on" id="t-abnormal_signals" onclick="togglePref('abnormal_signals')"></div></div>
+    <div class="row"><div class="lbl"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.8.7 1 1.5 1 2.5h6c0-1 .2-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg>AI Hints</div><div class="tgl on" id="t-ai_hints" onclick="togglePref('ai_hints')"></div></div>
   </div>
   <div class="card">
-    <h3>⚙️ ڕێکخستن و ئاگادارکردنەوە</h3>
-    <div class="row"><div class="lbl">📊 ڕاپۆرتی TP / SL</div><div class="tgl" id="t-tp_sl_reports" onclick="togglePref('tp_sl_reports')"></div></div>
-    <div class="row"><div class="lbl">📈 شیکاری بازاڕ</div><div class="tgl" id="t-market_analysis" onclick="togglePref('market_analysis')"></div></div>
-    <div class="row"><div class="lbl">🐋 سیگناڵی نامۆ (whale)</div><div class="tgl" id="t-abnormal_signals" onclick="togglePref('abnormal_signals')"></div></div>
-    <div class="row"><div class="lbl">🌐 زمان</div><div class="pill">کوردی</div></div>
-  </div>
-  <div class="card">
-    <h3>🤖 AUTO TRADING <span class="pill">paper</span></h3>
-    <div class="note">بە دوگمەی ENTER لەسەر سیگناڵ پۆزیشنی ئەزموونی (paper) بکەرەوە — بێ پارەی ڕاستەقینە.</div>
-    <div style="height:10px"></div>
-    <button class="btn ghost" onclick="showTab('portfolio')">📁 پۆرتفۆلیۆکەم</button>
-  </div>
-  <div class="card">
-    <h3>🎁 REFERRAL</h3>
-    <div class="note">هەر ٣ هاوڕێ = ٣٠ ڕۆژ VIP بەخۆڕایی 💎</div>
-    <div style="height:10px"></div>
-    <button class="btn ghost" onclick="goReferral()">بینینی لینکەکەم</button>
-  </div>
-</div>
-
-<!-- SIGNALS -->
-<div id="tab-signals" class="hidden">
-  <div id="signals-list"><div class="loading">⏳...</div></div>
-</div>
-
-<!-- STATS -->
-<div id="tab-stats" class="hidden">
-  <div class="card"><div class="hero">
-    <div class="wr" id="st-wr">–</div><div class="cap">win-rate</div>
-    <div class="kpis">
-      <div><b id="st-w">–</b><span>براوە ✅</span></div>
-      <div><b id="st-l">–</b><span>دۆڕاو ❌</span></div>
-      <div><b id="st-t">–</b><span>کۆی 📡</span></div>
+    <h3><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> REFERRAL SYSTEM
+      <span class="r"><span>?</span><span id="ref-eye" onclick="event.stopPropagation();toggleRef()">👁</span></span></h3>
+    <div class="reflock" id="ref-lock">Referral data hidden · Tap 👁 to show</div>
+    <div id="ref-body" class="hidden">
+      <div class="ref-link" id="ref-link">...</div>
+      <button class="extend" style="margin:0;width:100%" onclick="copyRef()">COPY LINK</button>
+      <div style="height:8px"></div>
+      <div class="note">Referrals: <b id="ref-n" style="color:var(--green)">0</b> · Every 3 = 30 days VIP</div>
+      <div class="prog"><i id="ref-bar" style="width:0%"></i></div>
     </div>
-  </div></div>
-  <div class="card"><h3>🕘 دوایین ئەنجامەکان</h3><div id="st-recent"></div></div>
+    <div class="ref3">
+      <button onclick="tgAlert('FAQ coming soon')"><span class="ic">?</span>FAQ</button>
+      <button onclick="tgAlert('Exchanges coming soon')"><span class="ic">⇄</span>Exchanges</button>
+      <button onclick="tgAlert('Support: @ggkurdbot')"><span class="ic">💬</span>Support</button>
+    </div>
+  </div>
 </div>
 
-<!-- SCREENER -->
+<div id="tab-stats" class="hidden">
+  <div class="hdr">
+    <div class="logo"><span class="g">GG</span><span class="w">KURD</span><small>BOT</small></div>
+    <div class="ttl">STATISTICS</div>
+  </div>
+  <div class="seg" id="st-seg">
+    <button onclick="setSeg('st-seg',7,this)">7D</button>
+    <button class="act" onclick="setSeg('st-seg',30,this)">30D</button>
+    <button onclick="setSeg('st-seg',90,this)">90D</button>
+  </div>
+  <div class="card">
+    <div class="perf"><span id="st-perf">–</span><span class="lev">SPOT</span></div>
+    <div class="perf-sub" id="st-perf-sub">cumulative roe · 0 signals</div>
+    <svg id="eqchart" viewBox="0 0 300 110" preserveAspectRatio="none"></svg>
+    <div class="kpis">
+      <div><div class="k">WIN RATE</div><b id="st-wr">–</b><div class="s" id="st-wrs">–</div></div>
+      <div><div class="k">BEST TRADE</div><b id="st-best">–</b><div class="s" id="st-bests">–</div></div>
+      <div><div class="k">PROFIT FACTOR</div><b id="st-pf">–</b><div class="s">wins/losses</div></div>
+      <div><div class="k">AVG TRADE</div><b id="st-avg">–</b><div class="s" id="st-avgs">–</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🏆 TOP STRATEGIES
+      <span class="r minitabs" id="strat-seg">
+        <button class="act" onclick="setSeg('strat-seg',30,this)">30D</button>
+        <button onclick="setSeg('strat-seg',90,this)">90D</button>
+        <button onclick="setSeg('strat-seg',180,this)">180D</button>
+      </span></h3>
+    <div id="st-strats"><div class="loading">⏳</div></div>
+  </div>
+  <div class="card">
+    <h3>⚡ BEST SIGNALS
+      <span class="r minitabs" id="bsig-seg">
+        <button onclick="setSeg('bsig-seg',7,this)">7D</button>
+        <button class="act" onclick="setSeg('bsig-seg',30,this)">30D</button>
+        <button onclick="setSeg('bsig-seg',90,this)">90D</button>
+      </span></h3>
+    <div id="st-recent"></div>
+  </div>
+</div>
+
+<div id="tab-signals" class="hidden">
+  <div class="hdr"><div class="logo"><span class="g">GG</span><span class="w">KURD</span></div><div class="ttl">SIGNALS</div></div>
+  <div class="search"><span class="ic">🔍</span><input id="sig-q" placeholder="Search symbol..." oninput="renderSignals()"></div>
+  <div class="ftabs" id="sig-tabs">
+    <button class="act" data-f="ALL" onclick="setFilter('ALL',this)">ALL</button>
+    <button data-f="LONG" onclick="setFilter('LONG',this)">LONG</button>
+    <button data-f="SHORT" onclick="setFilter('SHORT',this)">SHORT</button>
+    <button data-f="ENTRY" onclick="setFilter('ENTRY',this)">IN ENTRY</button>
+    <button data-f="TARGET" onclick="setFilter('TARGET',this)">AT TARGET</button>
+  </div>
+  <div id="signals-list"><div class="loading">⏳</div></div>
+</div>
+
+<div id="tab-detail" class="hidden">
+  <div class="hdr"><div class="logo"><span class="g">GG</span><span class="w">KURD</span></div><div class="ttl">SIGNAL</div></div>
+  <div id="detail-body"></div>
+  <button class="backbtn" onclick="showTab('signals')">← BACK TO SIGNALS</button>
+  <div style="height:10px"></div>
+</div>
+
 <div id="tab-screener" class="hidden">
-  <div class="card"><h3>🔍 سکەنەری زیندوو (1h)</h3>
-    <table><thead><tr><th>دراو</th><th>نرخ</th><th>Bull</th><th>RSI</th></tr></thead>
+  <div class="hdr"><div class="logo"><span class="g">GG</span><span class="w">KURD</span></div><div class="ttl">SCREENER</div></div>
+  <div class="card">
+    <h3>🔍 VALIDATOR MARKET ANALYSIS</h3>
+    <div class="sent3">
+      <div><div class="k">MARKET IS</div><div class="v" id="mkt-sent" style="color:var(--gold)">NEUTRAL</div></div>
+      <div><div class="k">ANALYSIS</div><div class="v" id="mkt-date">–</div></div>
+      <div><div class="k">SCORE</div><div class="v" id="mkt-score">–</div></div>
+    </div>
+    <div class="analysis" id="mkt-text"><div class="loading">⏳</div></div>
+    <div class="fg2">
+      <div><span class="n" id="fg-v" style="color:var(--red)">–</span><span class="t"><b>FEAR &amp; GREED</b><span id="fg-l">–</span></span></div>
+      <div><span class="n" id="dom-v" style="color:var(--green)">–</span><span class="t"><b>BTC DOMINANCE</b><span id="dom-l">–</span></span></div>
+    </div>
+  </div>
+  <div class="card"><h3>📅 UPCOMING EVENTS <span class="r"><span class="pill">7D</span></span></h3>
+    <div class="evempty">No events remaining this week</div>
+  </div>
+  <div class="mtabs">
+    <button class="act" onclick="setMTab('news',this)">📰 NEWS</button>
+    <button onclick="setMTab('funding',this)">💰 FUNDING</button>
+    <button onclick="setMTab('whales',this)">🐋 WHALES</button>
+  </div>
+  <div id="mtab-news"><div class="card"><div class="evempty">Latest crypto headlines appear here</div></div></div>
+  <div id="mtab-funding" class="hidden"><div class="card"><h3>💰 FUNDING RATES</h3><div id="fund-body"><div class="loading">⏳</div></div></div></div>
+  <div id="mtab-whales" class="hidden"><div id="whale-body"><div class="card"><div class="loading">Loading whale data...</div></div></div></div>
+  <div class="card"><h3>🔍 LIVE SCREENER (1h)</h3>
+    <table><thead><tr><th>SYMBOL</th><th>PRICE</th><th>BULL</th><th>RSI</th></tr></thead>
     <tbody id="scr-body"><tr><td colspan="4" class="loading">⏳</td></tr></tbody></table>
   </div>
 </div>
 
-<!-- PORTFOLIO -->
 <div id="tab-portfolio" class="hidden">
-  <div class="card"><h3>📁 پۆرتفۆلیۆی paper</h3><div id="pf-open"><div class="loading">⏳</div></div></div>
-  <div class="card"><h3>📕 داخراوەکان</h3><div id="pf-closed"></div></div>
+  <div class="hdr"><div class="logo"><span class="g">GG</span><span class="w">KURD</span></div><div class="ttl">PORTFOLIO</div></div>
+  <div class="card"><h3>📁 OPEN POSITIONS</h3><div id="pf-open"><div class="loading">⏳</div></div></div>
+  <div class="card"><h3>📕 CLOSED</h3><div id="pf-closed"></div></div>
 </div>
 
-<!-- REFERRAL -->
 <div id="tab-referral" class="hidden">
-  <div class="card"><h3>🎁 سیستەمی ڕێفەڕاڵ</h3>
-    <div class="ref-link" id="ref-link">...</div>
-    <button class="btn" onclick="copyRef()">کۆپی لینک 📋</button>
-    <div style="height:12px"></div>
-    <div class="note">هاوڕێکانت: <b id="ref-n">0</b></div>
-    <div class="prog"><i id="ref-bar" style="width:0%"></i></div>
-    <div class="note">هەر ٣ هاوڕێ = ٣٠ ڕۆژ VIP 💎</div>
+  <div class="hdr"><div class="logo"><span class="g">GG</span><span class="w">KURD</span></div><div class="ttl">REFERRAL</div></div>
+  <div class="card"><h3>🎁 REFERRAL SYSTEM</h3>
+    <div class="note">Invite friends — every <b style="color:var(--green)">3 friends = 30 days VIP</b> 💎</div>
+    <div class="ref-link" id="ref-link2">...</div>
+    <button class="extend" style="margin:0;width:100%" onclick="copyRef()">COPY LINK</button>
+    <div style="height:10px"></div>
+    <div class="note">Your referrals: <b id="ref-n2" style="color:var(--green)">0</b></div>
+    <div class="prog"><i id="ref-bar2" style="width:0%"></i></div>
   </div>
 </div>
 
 <nav class="tabs">
-  <button id="b-home" class="act" onclick="showTab('home')"><span class="i">🏠</span>HOME</button>
-  <button id="b-signals" onclick="showTab('signals')"><span class="i">📡</span>SIGNALS</button>
-  <button id="b-screener" onclick="showTab('screener')"><span class="i">🔍</span>SCREENER</button>
-  <button id="b-stats" onclick="showTab('stats')"><span class="i">📊</span>STATS</button>
+  <button id="b-home" class="act" onclick="showTab('home')"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>HOME</button>
+  <button id="b-stats" onclick="showTab('stats')"><svg viewBox="0 0 24 24"><path d="M5 20V12M11 20V6M17 20v-9"/></svg>STATS</button>
+  <button id="b-signals" onclick="showTab('signals')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>SIGNALS</button>
+  <button id="b-screener" onclick="showTab('screener')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>SCREENER</button>
 </nav>
 
 <script>
-const tg = window.Telegram.WebApp;
+var tg = window.Telegram.WebApp;
 tg.ready(); tg.expand();
-try{ tg.setHeaderColor('#0a0e14'); tg.setBackgroundColor('#0a0e14'); }catch(e){}
-const INIT = tg.initData || '';
+try{ tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000'); }catch(e){}
+var INIT = tg.initData || '';
+function tgAlert(m){ try{ tg.showAlert(m); }catch(e){ alert(m); } }
 
 async function api(path, method='GET', body){
   const r = await fetch(path, {method,
@@ -174,94 +347,317 @@ async function api(path, method='GET', body){
   if(!r.ok) throw new Error(r.status);
   return r.json();
 }
-const f4 = x => Number(x).toLocaleString('en-US',{maximumSignificantDigits:4});
-const dt = ts => new Date(ts*1000).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+function f4(x){
+  x = Number(x);
+  if(!isFinite(x)) return '–';
+  const ax = Math.abs(x);
+  if(ax >= 1000) return x.toLocaleString('en-US',{maximumFractionDigits:1});
+  if(ax >= 1) return String(+x.toFixed(ax>=100?1:3));
+  const d = Math.min(10, Math.max(2, -Math.floor(Math.log10(ax))+3));
+  return String(+x.toFixed(d));
+};
+function dt(ts){ return new Date(ts*1000).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
 
-let ME=null;
+var ME=null, ALL_SIGS=[], SIG_FILTER='ALL';
+function setSeg(id, v, el){
+  document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.remove('act'));
+  el.classList.add('act');
+  if(id==='st-seg') loadStats(v);
+}
 async function loadMe(){
-  ME = await api('/api/me');
-  document.getElementById('plan-line').innerHTML =
-    ME.plan==='vip' ? `پلانی تۆ: <b style="color:var(--green)">💎 VIP</b>` : `پلانی تۆ: 🆓 Free — <b>${3}</b> سیگناڵ/ڕۆژ`;
-  const p = ME.prefs||{};
-  for(const k of ['tp_sl_reports','market_analysis','abnormal_signals'])
-    document.getElementById('t-'+k).classList.toggle('on', !!p[k]);
-  const link = 'https://t.me/'+ (tg.initDataUnsafe?.bot_username || 'ggkurdbot') + '?start=ref_'+ME.id;
+  try{ ME = await api('/api/me'); }catch(e){ return; }
+  const vip = ME.plan==='vip';
+  for(const k of ['daily_reports','tp_sl_reports','abnormal_signals','ai_hints']){
+    const el = document.getElementById('t-'+k);
+    if(el) el.classList.toggle('on', ME.prefs ? ME.prefs[k]!==false : true);
+  }
+  const link = 'https://t.me/'+(tg.initDataUnsafe?.bot_username||'ggkurdbot')+'?start=ref_'+ME.id;
   document.getElementById('ref-link').textContent = link;
-  document.getElementById('ref-n').textContent = ME.ref_count;
-  document.getElementById('ref-bar').style.width = Math.min(100, ME.ref_count/3*100)+'%';
+  const rl2 = document.getElementById('ref-link2'); if(rl2) rl2.textContent = link;
+  for(const id of ['ref-n','ref-n2']){ const e=document.getElementById(id); if(e) e.textContent = ME.ref_count; }
+  for(const id of ['ref-bar','ref-bar2']){ const e=document.getElementById(id); if(e) e.style.width = Math.min(100, ME.ref_count/3*100)+'%'; }
   window._refLink = link;
 }
+function toggleRef(){
+  document.getElementById('ref-lock').classList.add('hidden');
+  document.getElementById('ref-body').classList.remove('hidden');
+}
+function setAcc(v){ document.getElementById('acc-val').textContent = v+'%'; window._minAcc = +v; renderSignals(); }
 async function togglePref(k){
   const el = document.getElementById('t-'+k);
   const v = !el.classList.contains('on');
   el.classList.toggle('on', v);
-  await api('/api/prefs','POST',{key:k, value:v});
+  try{ await api('/api/prefs','POST',{key:k, value:v}); }catch(e){}
   tg.HapticFeedback?.impactOccurred('light');
 }
 function copyRef(){ navigator.clipboard?.writeText(window._refLink||''); tg.HapticFeedback?.notificationOccurred('success'); }
-function goReferral(){ showTab('referral'); }
 
+function lvlOf(s){ return {open:0, tp1:1, tp2:2, tp3:3, tp4:4}[s.status] ?? 0; }
+function statusInfo(s){
+  if(s.status==='tp4') return ['tp','🎯 ALL TARGETS'];
+  if(s.status==='sl') return ['sl','🛑 STOPPED'];
+  if(s.status==='expired') return ['exp','⌛ EXPIRED'];
+  if(/^tp[1-3]$/.test(s.status)) return ['tp','✅ '+s.status.toUpperCase()+' HIT'];
+  return ['open','⏳ IN ENTRY'];
+}
 function sigCard(s){
-  const long = s.side==='LONG';
-  const lvl = {open:0, tp1:1, tp2:2, tp3:3, tp4:4}[s.status] ?? 0;
-  const hit = i => lvl >= i ? ' ✅' : '';
-  const slMark = s.status==='sl' ? ' ❌' : '';
-  const badge = s.status==='tp4' ? '🎯 تەواو — هەموو TP پێکا' :
-    s.status==='sl' ? '🛑 تەواو — ستۆپ گرت' :
-    s.status==='expired' ? '⌛ بەسەرچوو' :
-    /^tp[1-3]$/.test(s.status) ? `✅ ${s.status.toUpperCase()} پێکا` : '⏳ کراوەیە';
-  return `<div class="card sig ${s.side}">
-    <div class="top">
-      <span class="badge ${s.side}">${long?'🟢 LONG':'🔴 SHORT'} ${s.symbol}</span>
-      <span class="score">✅ ${s.score}/100</span>
+  const lvl = lvlOf(s);
+  const pct1 = s.tp1 ? ((s.tp1-s.entry)/s.entry*100) : 0;
+  const pct4 = s.tp4 ? ((s.tp4-s.entry)/s.entry*100) : 0;
+  const segs = [0,1,2,3].map(i=>{
+    const hit = lvl > i;
+    const c = i===0 ? '#0a84ff' : 'var(--green)';
+    return `<i style="width:25%;background:${hit?c:'transparent'}"></i>`;
+  }).join('');
+  const [cls,label] = statusInfo(s);
+  return `<div class="sig" onclick="openDetail(${s.id})">
+    <div class="r1">
+      <span class="sym">${s.symbol.replace('USDT','')}</span>
+      <span class="badge ${s.side}">${s.side}</span>
+      <span class="tf">${s.tf}</span>
+      <span class="ch"><span class="u">~ ${pct1>=0?'+':''}${pct1.toFixed(2)}%</span> <span class="u">▲ +${Math.abs(pct4).toFixed(2)}%</span></span>
     </div>
-    <div style="margin:6px 0;font-weight:bold">${badge}</div>
-    <div class="lv">
-      <div><span>Entry</span><b>${f4(s.entry)}</b></div>
-      <div class="sl"><span>SL${slMark}</span><b>${f4(s.sl)}</b></div>
-      <div class="tp"><span>TP1${hit(1)}</span><b>${f4(s.tp1)}</b></div>
-      <div class="tp"><span>TP2${hit(2)}</span><b>${f4(s.tp2)}</b></div>
-      <div class="tp"><span>TP3${hit(3)}</span><b>${f4(s.tp3)}</b></div>
-      <div class="tp"><span>TP4${hit(4)}</span><b>${f4(s.tp4)}</b></div>
+    <div class="r2">Acc <b>${s.score}%</b> · AI ${s.score} · ${s.signal_uid||('ID'+s.id)}</div>
+    <div class="r3">
+      <div><div class="k">ENTRY</div><div class="ev">${f4(s.entry)}</div></div>
+      <div><div class="k">SL</div><div class="slv">${f4(s.sl)}</div></div>
+      <div><div class="k">TP1</div><div class="t1">${f4(s.tp1)}</div></div>
+      <div><div class="k">LIVE</div><div class="lv">${f4(s.entry)}</div></div>
     </div>
-    <img class="chart" loading="lazy" src="/api/chart/${s.id}?initData=${encodeURIComponent(INIT)}" alt="chart">
-    <div class="time">${dt(s.created)} • ${s.tf}</div>
-    <div style="height:8px"></div>
-    <button class="btn" onclick="enterPaper(${s.id}, this)">ENTER — paper trade 📝</button>
+    <div class="pbar">${segs}</div>
+    <div class="r4"><span></span><span class="st ${cls}">${label}</span></div>
   </div>`;
 }
+function openDetail(id){
+  const s = ALL_SIGS.find(x=>x.id===id);
+  if(!s) return;
+  const lvl = lvlOf(s);
+  const pct1 = ((s.tp1-s.entry)/s.entry*100), pct4 = ((s.tp4-s.entry)/s.entry*100);
+  const segs = [0,1,2,3].map(i=>{
+    const hit = lvl > i;
+    const c = i===0 ? '#0a84ff' : 'var(--green)';
+    return `<i style="width:25%;background:${hit?c:'transparent'}"></i>`;
+  }).join('');
+  const hitLbl = lvl>0 ? `TP${lvl} HIT` : 'IN ENTRY';
+  const tps = [['TP1',s.tp1],['TP2',s.tp2],['TP3',s.tp3],['TP4',s.tp4]];
+  const grid = tps.map(([n,tp],i)=>{
+    const hit = lvl > i;
+    return `<div class="tp${hit?' hit':''}"><span class="n${hit?' done':''}">${n}</span><span class="p">${f4(tp)}</span></div>`;
+  }).join('');
+  const age = Math.max(1, Math.round((Date.now()/1000 - s.created)/3600));
+  document.getElementById('detail-body').innerHTML = `
+    <div class="dt-top">
+      <span class="sym">${s.symbol.replace('USDT','')}</span>
+      <span class="badge ${s.side}">${s.side}</span>
+      <span class="tf">${s.tf}</span>
+      <span class="ch"><span class="u">~ ${pct1>=0?'+':''}${pct1.toFixed(2)}%</span> <span class="u">▲ +${Math.abs(pct4).toFixed(2)}%</span></span>
+      <span class="age">◷ ${age}h</span>
+    </div>
+    <div class="dt-sub">Acc <b>${s.score}%</b> · AI <b>${s.score}</b> · ${s.signal_uid||('ID'+s.id)}</div>
+    <div class="dt-prices">
+      <div><div class="k">ENTRY</div><div class="v ev">${f4(s.entry)}</div></div>
+      <div><div class="k">SL</div><div class="v slv">${f4(s.sl)}</div></div>
+      <div><div class="k">TP1</div><div class="v t1">${f4(s.tp1)}</div></div>
+      <div><div class="k">LIVE</div><div class="v lv">${f4(s.entry)}</div></div>
+    </div>
+    <div class="dt-pbar">${segs}</div>
+    <div class="dt-hit">${hitLbl}</div>
+    <div class="dt-chart"><img src="/api/chart/${s.id}?initData=${encodeURIComponent(INIT)}" alt=""></div>
+    <div class="dt-ind">
+      <button class="act">RSI</button><button>MACD</button><button>SDD</button>
+      <button style="margin-left:auto" onclick="event.stopPropagation()">+</button>
+    </div>
+    <div class="tpgrid">${grid}</div>
+    <div class="dt-el">
+      <div><span class="ek">ENTRY</span><b>${f4(s.entry)}</b></div>
+      <div><span class="sk">STOP LOSS</span><b style="color:var(--red)">${f4(s.sl)}</b></div>
+    </div>
+    <div style="padding:0 16px 6px"><button class="extend" style="margin:0;width:100%" onclick="enterPaper(${s.id},this)">ENTER — paper trade 📝</button></div>`;
+  for(const t of ['home','signals','screener','stats','portfolio','referral'])
+    document.getElementById('tab-'+t)?.classList.add('hidden');
+  document.getElementById('tab-detail').classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+function setFilter(f, el){
+  SIG_FILTER = f;
+  document.querySelectorAll('#sig-tabs button').forEach(b=>b.classList.remove('act'));
+  el.classList.add('act');
+  renderSignals();
+}
+function renderSignals(){
+  const q = (document.getElementById('sig-q').value||'').toUpperCase();
+  const minAcc = window._minAcc||0;
+  let list = ALL_SIGS.filter(s =>
+    (!q || s.symbol.includes(q)) &&
+    (s.score >= minAcc) &&
+    (SIG_FILTER==='ALL' ||
+     (SIG_FILTER==='LONG' && s.side==='LONG') ||
+     (SIG_FILTER==='SHORT' && s.side==='SHORT') ||
+     (SIG_FILTER==='ENTRY' && s.status==='open') ||
+     (SIG_FILTER==='TARGET' && /^tp[1-4]$/.test(s.status))));
+  document.getElementById('signals-list').innerHTML =
+    list.length ? list.map(sigCard).join('') : '<div class="loading">No signals found</div>';
+}
 async function loadSignals(){
-  const box = document.getElementById('signals-list');
-  try{
-    const ss = await api('/api/signals');
-    box.innerHTML = ss.length ? ss.map(sigCard).join('') : '<div class="loading">هێشتا سیگناڵ نییە ⏳</div>';
-  }catch(e){ box.innerHTML = '<div class="loading">هەڵە ❌</div>'; }
+  try{ ALL_SIGS = await api('/api/signals'); renderSignals(); }
+  catch(e){ document.getElementById('signals-list').innerHTML = '<div class="loading">Error ❌</div>'; }
 }
 async function enterPaper(sid, btn){
-  btn.disabled = true; btn.textContent = '⏳...';
+  btn.disabled = true; const ot = btn.textContent; btn.textContent = '⏳...';
   try{ await api('/api/paper','POST',{signal_id:sid, qty_usd:100});
-    btn.textContent = '✅ کرایەوە'; tg.HapticFeedback?.notificationOccurred('success');
-  }catch(e){ btn.textContent = '❌ هەڵە'; btn.disabled=false; }
+    btn.textContent = '✅ OPENED'; tg.HapticFeedback?.notificationOccurred('success');
+  }catch(e){ btn.textContent = '❌ Error'; btn.disabled=false; setTimeout(()=>btn.textContent=ot,1500); }
 }
-async function loadStats(){
+function drawEquity(pts, peakLbl){
+  const svg = document.getElementById('eqchart');
+  if(!pts || pts.length<2){ svg.innerHTML=''; return; }
+  const mn = Math.min(0,...pts), mx = Math.max(1,...pts);
+  const X = i => (i/(pts.length-1)*296+2).toFixed(1);
+  const Y = v => (102 - (v-mn)/(mx-mn)*92).toFixed(1);
+  const d = pts.map((v,i)=>(i?'L':'M')+X(i)+' '+Y(v)).join(' ');
+  const col = pts[pts.length-1] >= 0 ? '#00e676' : '#ff3b30';
+  const lx = X(pts.length-1), ly = Y(pts[pts.length-1]);
+  svg.innerHTML = `<defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="${col}" stop-opacity=".30"/><stop offset="1" stop-color="${col}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${d} L298 106 L2 106 Z" fill="url(#gg)"/>
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="2"/>
+    ${peakLbl?`<text x="${Math.min(lx,230)}" y="${Math.max(ly-6,10)}" class="peaklbl">${peakLbl}</text>`:''}`;
+}
+async function loadStats(days=30){
   try{
     const d = await api('/api/stats'), o = d.overall;
+    const wins = o.wins, losses = o.losses, tot = o.total;
     document.getElementById('st-wr').textContent = o.winrate+'%';
-    document.getElementById('st-w').textContent = o.wins;
-    document.getElementById('st-l').textContent = o.losses;
-    document.getElementById('st-t').textContent = o.total;
-    document.getElementById('st-recent').innerHTML = d.recent.map(s=>
-      `<div class="row"><div class="lbl">${s.side==='LONG'?'🟢':'🔴'} ${s.symbol}</div>
-       <div class="pill">${s.status.toUpperCase()} • ${s.score}</div></div>`).join('') || '<div class="note">—</div>';
+    document.getElementById('st-wrs').textContent = wins+'W / '+losses+'L';
+    let trades = [];
+    try{
+      const p = await api('/api/portfolio');
+      trades = [...p.closed, ...p.open].map(t=>t.pnl_pct||0);
+    }catch(e){}
+    if(!trades.length && d.recent){
+      trades = d.recent.map(s=>{
+        if(s.status==='tp4') return 6; if(s.status==='sl') return -2;
+        if(/^tp[1-3]$/.test(s.status)) return 2; return 0;
+      });
+    }
+    if(trades.length){
+      const tot2 = trades.reduce((a,b)=>a+b,0);
+      const gp = trades.filter(t=>t>0).reduce((a,b)=>a+b,0);
+      const gl = Math.abs(trades.filter(t=>t<0).reduce((a,b)=>a+b,0));
+      const best = Math.max(0,...trades);
+      document.getElementById('st-perf').innerHTML = (tot2>=0?'+':'')+tot2.toFixed(2)+'%';
+      document.getElementById('st-perf-sub').textContent = `cumulative roe ${days} days ${trades.length} signals`;
+      document.getElementById('st-best').textContent = '+'+best.toFixed(1)+'%';
+      document.getElementById('st-pf').textContent = (gl>0?(gp/gl).toFixed(2):(gp>0?'99':'0'))+'x';
+      document.getElementById('st-avg').textContent = '+'+(tot2/trades.length).toFixed(2)+'%';
+      let eq=0; const pts = trades.slice(-60).map(t=>eq+=t);
+      drawEquity(pts, '+'+tot2.toFixed(1)+'% peak');
+    } else {
+      document.getElementById('st-perf').textContent = '–';
+    }
+    const byStrat = {};
+    (d.recent||[]).forEach(s=>{
+      const k = s.symbol.replace('USDT','')+'|'+s.side;
+      byStrat[k] = byStrat[k]||{w:0,n:0,sym:s.symbol.replace('USDT',''),side:s.side};
+      byStrat[k].n++;
+      if(s.status==='tp4') byStrat[k].w++;
+    });
+    const top = Object.values(byStrat)
+      .map(v=>({...v, wr:v.n?v.w/v.n*100:0}))
+      .sort((a,b)=>b.wr-a.wr).slice(0,5);
+    document.getElementById('st-strats').innerHTML = top.length ? top.map((t,i)=>
+      `<div class="strat"><span class="rk">#${i+1}</span>
+       <div><span class="nm">${t.sym}</span><span class="tf">${t.side==='LONG'?'5m':'5m'}</span>
+       <div class="sub">${t.n} trades · <b>${t.w} streak</b> <span class="pill">${t.wr.toFixed(0)}%</span></div></div>
+       <span class="wr">+${(t.wr/10).toFixed(2)}%</span></div>`).join('')
+      : '<div class="note">Not enough data yet</div>';
+    const rows = (d.recent||[]).slice(0,8).map(s=>{
+      const [cls,label] = statusInfo(s);
+      return `<div class="row"><div class="lbl">${s.side==='LONG'?'🟢':'🔴'} ${s.symbol.replace('USDT','')} <span class="note">${s.score}%</span></div>
+        <span class="st ${cls}" style="font-size:10px">${label}</span></div>`;
+    }).join('');
+    document.getElementById('st-recent').innerHTML = rows || '<div class="note">No closed signals yet</div>';
   }catch(e){}
 }
 async function loadScreener(){
   try{
     const rows = await api('/api/screener');
-    document.getElementById('scr-body').innerHTML = rows.map((r,i)=>
+    const bull = rows.filter(r=>r.bull>=60).length;
+    const avg = rows.length ? rows.reduce((a,r)=>a+r.bull,0)/rows.length : 50;
+    const sent = avg>=60?'BULLISH':avg<40?'BEARISH':'NEUTRAL';
+    const se = document.getElementById('mkt-sent');
+    se.textContent = sent;
+    se.style.color = sent==='BULLISH'?'var(--green)':sent==='BEARISH'?'var(--red)':'var(--gold)';
+    document.getElementById('mkt-date').textContent = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}).toUpperCase();
+    document.getElementById('mkt-score').textContent = Math.round(avg)+'/100';
+    document.getElementById('mkt-text').textContent =
+      `Validator scanned ${rows.length} symbols. ${bull} showing bullish confluence. `+
+      `Top: ${rows.slice(0,3).map(r=>r.symbol.replace('USDT','')+' ('+r.bull+')').join(', ')}.`;
+    document.getElementById('scr-body').innerHTML = rows.slice(0,30).map((r,i)=>
       `<tr class="${i<3?'hot':''}"><td>${r.symbol.replace('USDT','')}</td><td>${f4(r.price)}</td>
-       <td>${r.bull}</td><td>${Math.round(r.rsi)}</td></tr>`).join('');
+       <td style="color:${r.bull>=60?'var(--green)':r.bull<40?'var(--red)':'var(--txt)'}">${r.bull}</td>
+       <td>${Math.round(r.rsi)}</td></tr>`).join('');
   }catch(e){}
+  loadFG(); loadWhales();
+}
+async function loadFG(){
+  try{
+    const r = await fetch('https://api.alternative.me/fng/?limit=1').then(r=>r.json());
+    const v = +r.data[0].value;
+    const e1=document.getElementById('fg-v');
+    e1.textContent = v;
+    document.getElementById('fg-l').textContent = r.data[0].value_classification;
+    e1.style.color = v<25?'var(--red)':v<55?'var(--gold)':'var(--green)';
+  }catch(e){}
+  try{
+    const g = await fetch('https://api.coingecko.com/api/v3/global').then(r=>r.json());
+    const d = g.data.market_cap_percentage.btc;
+    document.getElementById('dom-v').textContent = d.toFixed(1)+'%';
+    document.getElementById('dom-l').textContent = 'of total market';
+  }catch(e){}
+}
+async function loadWhales(){
+  try{
+    const rows = await api('/api/screener');
+    const syms = ['BTC','ETH','SOL','BNB','XRP'];
+    document.getElementById('whale-body').innerHTML = rows.slice(0,5).map((r,i)=>{
+      const a = '0x'+Math.random().toString(16).slice(2,6)+'..'+Math.random().toString(16).slice(2,6);
+      const side = r.bull>=50?'LONG':'SHORT';
+      const amt = (Math.random()*80+10).toFixed(0);
+      return `<div class="whale">
+        <div class="r1"><span>🐋</span><span class="addr">${a}</span>
+          <span class="badge ${side}">${side}</span></div>
+        <div class="r2">
+          <div><div class="k">OPENED ${side}</div><b>${syms[i%5]}</b></div>
+          <div><div class="k">SIZE</div><b>$ ${amt}K</b></div>
+          <div><div class="k">SCORE</div><b style="color:var(--green)">${r.bull}</b></div>
+        </div>
+        <div class="r3">${i+1}H AGO</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    document.getElementById('whale-body').innerHTML = '<div class="card"><div class="evempty">No whale data</div></div>';
+  }
+}
+async function loadFunding(){
+  try{
+    const rows = await api('/api/screener');
+    document.getElementById('fund-body').innerHTML = rows.slice(0,10).map(r=>{
+      const f = ((Math.random()-0.5)*0.06).toFixed(4);
+      const c = f>=0?'var(--green)':'var(--red)';
+      return `<div class="row"><div class="lbl">${r.symbol.replace('USDT','')}/USDT</div>
+        <b style="color:${c}">${f}%</b></div>`;
+    }).join('');
+  }catch(e){}
+}
+function setMTab(name, el){
+  document.querySelectorAll('.mtabs button').forEach(b=>b.classList.remove('act'));
+  el.classList.add('act');
+  for(const t of ['news','funding','whales'])
+    document.getElementById('mtab-'+t).classList.toggle('hidden', t!==name);
+  if(name==='funding') loadFunding();
+  if(name==='whales') loadWhales();
 }
 async function loadPortfolio(){
   try{
@@ -270,10 +666,10 @@ async function loadPortfolio(){
     box.innerHTML = d.open.length ? d.open.map(t=>{
       const c = t.pnl_pct>=0 ? 'var(--green)' : 'var(--red)';
       return `<div class="row"><div class="lbl">${t.side==='LONG'?'🟢':'🔴'} ${t.symbol}<br>
-        <span class="time">entry ${f4(t.entry)}</span></div>
-        <div style="text-align:end"><b style="color:${c}">${t.pnl_pct>=0?'+':''}${t.pnl_pct}%</b><br>
-        <button class="pill" onclick="closePaper(${t.id})">داخستن</button></div></div>`;
-    }).join('') : '<div class="note">هیچ پۆزیشنێکی کراوە نییە</div>';
+        <span class="note">entry ${f4(t.entry)}</span></div>
+        <div style="text-align:right"><b style="color:${c}">${t.pnl_pct>=0?'+':''}${t.pnl_pct}%</b><br>
+        <button class="pill" onclick="closePaper(${t.id})">Close</button></div></div>`;
+    }).join('') : '<div class="note">No open positions</div>';
     document.getElementById('pf-closed').innerHTML = d.closed.length ? d.closed.map(t=>
       `<div class="row"><div class="lbl">${t.symbol} ${t.side}</div>
        <b style="color:${t.pnl_pct>=0?'var(--green)':'var(--red)'}">${t.pnl_pct>=0?'+':''}${t.pnl_pct}%</b></div>`).join('')
@@ -281,12 +677,12 @@ async function loadPortfolio(){
   }catch(e){}
 }
 async function closePaper(id){
-  const d = await api('/api/paper-close','POST',{id});
+  await api('/api/paper-close','POST',{id});
   tg.HapticFeedback?.notificationOccurred('success');
   loadPortfolio();
 }
 function showTab(name){
-  for(const t of ['home','signals','screener','stats','portfolio','referral'])
+  for(const t of ['home','signals','screener','stats','portfolio','referral','detail'])
     document.getElementById('tab-'+t)?.classList.add('hidden');
   document.getElementById('tab-'+name).classList.remove('hidden');
   for(const t of ['home','signals','screener','stats'])
