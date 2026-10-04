@@ -2,20 +2,22 @@ name: APEX signal scanner
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch:
+    - cron: "*/5 * * * *"   # every 5 minutes (cron-job.org triggers via dispatch too)
+  workflow_dispatch:        # manual trigger button
 
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Install deps
-        run: pip install pandas numpy requests psycopg2-binary matplotlib fastapi
+        run: |
+          pip install pandas numpy requests psycopg2-binary matplotlib fastapi playwright
+          python -m playwright install chromium --with-deps
       - name: Run scanner
         run: python scanner_job.py
         env:
