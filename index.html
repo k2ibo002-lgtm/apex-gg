@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>APEX Bot</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#0a0e14; --card:#131722; --card2:#1a2030; --line:#232a3a;
+  --green:#00e676; --green-d:#00b35c; --red:#ff5252; --txt:#e8ecf1; --mut:#8a94a6;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+body{margin:0; background:var(--bg); color:var(--txt);
+  font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; padding-bottom:84px;}
+.hdr{display:flex; align-items:center; gap:10px; padding:16px 16px 8px;}
+.logo{font-weight:900; font-size:22px; letter-spacing:1px;}
+.logo b{color:var(--green);}
+.hdr .sub{margin-inline-start:auto; color:var(--mut); font-size:11px; letter-spacing:2px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:16px;
+  margin:10px 14px; padding:16px;}
+.card h3{margin:0 0 4px; font-size:12px; letter-spacing:2px; color:var(--mut); font-weight:600;}
+.btn{display:block; width:100%; border:0; border-radius:12px; padding:14px;
+  font-size:15px; font-weight:800; cursor:pointer; color:#04120a;
+  background:linear-gradient(180deg,var(--green),var(--green-d));}
+.btn.ghost{background:var(--card2); color:var(--txt); border:1px solid var(--line);}
+.row{display:flex; align-items:center; justify-content:space-between;
+  padding:13px 2px; border-bottom:1px solid var(--line);}
+.row:last-child{border-bottom:0;}
+.row .lbl{font-size:14px;}
+.tgl{width:46px; height:26px; border-radius:13px; background:#2a3145; position:relative; cursor:pointer; transition:.2s;}
+.tgl::after{content:""; position:absolute; top:3px; inset-inline-start:3px; width:20px; height:20px;
+  border-radius:50%; background:#8a94a6; transition:.2s;}
+.tgl.on{background:#0d3b24;}
+.tgl.on::after{inset-inline-start:23px; background:var(--green);}
+.sig{border-inline-start:4px solid var(--green);}
+.sig.SHORT{border-inline-start-color:var(--red);}
+.sig .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+.badge{font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px;}
+.badge.LONG{background:#0d3b24; color:var(--green);}
+.badge.SHORT{background:#3b0d0d; color:var(--red);}
+.score{font-size:12px; color:var(--mut);}
+.lv{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0; font-size:13px;}
+.lv div{background:var(--card2); border-radius:8px; padding:8px 10px;}
+.lv span{color:var(--mut); font-size:11px; display:block;}
+.lv b{font-variant-numeric:tabular-nums;}
+.lv .tp b{color:var(--green);} .lv .sl b{color:var(--red);}
+.chart{width:100%; border-radius:10px; margin:8px 0; display:block;}
+.time{font-size:11px; color:var(--mut);}
+.hero{text-align:center; padding:10px 0;}
+.hero .wr{font-size:52px; font-weight:900; color:var(--green);}
+.hero .cap{color:var(--mut); font-size:13px;}
+.kpis{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px;}
+.kpis div{background:var(--card2); border-radius:10px; padding:10px 4px; text-align:center;}
+.kpis b{font-size:20px; display:block;}
+.kpis span{font-size:11px; color:var(--mut);}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th{color:var(--mut); font-weight:600; font-size:11px; padding:8px 4px; border-bottom:1px solid var(--line);}
+td{padding:10px 4px; border-bottom:1px solid var(--line); text-align:center; font-variant-numeric:tabular-nums;}
+tr.hot td:first-child{color:var(--green); font-weight:800;}
+.tabs{position:fixed; bottom:0; left:0; right:0; background:#0d1119f2; backdrop-filter:blur(8px);
+  border-top:1px solid var(--line); display:flex; padding:8px 4px calc(8px + env(safe-area-inset-bottom));}
+.tabs button{flex:1; background:none; border:0; color:var(--mut); font-size:10px; font-weight:700;
+  display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px;}
+.tabs button .i{font-size:20px;}
+.tabs button.act{color:var(--green);}
+.pill{font-size:11px; background:var(--card2); border:1px solid var(--line); border-radius:8px;
+  padding:6px 10px; color:var(--mut);}
+.ref-link{background:var(--card2); border:1px dashed var(--green); border-radius:10px;
+  padding:12px; font-size:12px; word-break:break-all; color:var(--green); margin:10px 0;}
+.prog{height:8px; background:var(--card2); border-radius:4px; overflow:hidden; margin:8px 0;}
+.prog i{display:block; height:100%; background:var(--green);}
+.note{font-size:12px; color:var(--mut); line-height:1.7;}
+.hidden{display:none !important;}
+.loading{text-align:center; color:var(--mut); padding:40px;}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="logo"><b>APEX</b> BOT</div>
+  <div class="sub">MAIN MENU</div>
+</div>
+
+<!-- HOME -->
+<div id="tab-home">
+  <div class="card">
+    <h3>💎 PREMIUM</h3>
+    <div id="plan-line" class="note">...</div>
+    <div style="height:10px"></div>
+    <button class="btn" onclick="goReferral()">GET PREMIUM 🎁</button>
+  </div>
+  <div class="card">
+    <h3>⚙️ ڕێکخستن و ئاگادارکردنەوە</h3>
+    <div class="row"><div class="lbl">📊 ڕاپۆرتی TP / SL</div><div class="tgl" id="t-tp_sl_reports" onclick="togglePref('tp_sl_reports')"></div></div>
+    <div class="row"><div class="lbl">📈 شیکاری بازاڕ</div><div class="tgl" id="t-market_analysis" onclick="togglePref('market_analysis')"></div></div>
+    <div class="row"><div class="lbl">🐋 سیگناڵی نامۆ (whale)</div><div class="tgl" id="t-abnormal_signals" onclick="togglePref('abnormal_signals')"></div></div>
+    <div class="row"><div class="lbl">🌐 زمان</div><div class="pill">کوردی</div></div>
+  </div>
+  <div class="card">
+    <h3>🤖 AUTO TRADING <span class="pill">paper</span></h3>
+    <div class="note">بە دوگمەی ENTER لەسەر سیگناڵ پۆزیشنی ئەزموونی (paper) بکەرەوە — بێ پارەی ڕاستەقینە.</div>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="showTab('portfolio')">📁 پۆرتفۆلیۆکەم</button>
+  </div>
+  <div class="card">
+    <h3>🎁 REFERRAL</h3>
+    <div class="note">هەر ٣ هاوڕێ = ٣٠ ڕۆژ VIP بەخۆڕایی 💎</div>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="goReferral()">بینینی لینکەکەم</button>
+  </div>
+</div>
+
+<!-- SIGNALS -->
+<div id="tab-signals" class="hidden">
+  <div id="signals-list"><div class="loading">⏳...</div></div>
+</div>
+
+<!-- STATS -->
+<div id="tab-stats" class="hidden">
+  <div class="card"><div class="hero">
+    <div class="wr" id="st-wr">–</div><div class="cap">win-rate</div>
+    <div class="kpis">
+      <div><b id="st-w">–</b><span>براوە ✅</span></div>
+      <div><b id="st-l">–</b><span>دۆڕاو ❌</span></div>
+      <div><b id="st-t">–</b><span>کۆی 📡</span></div>
+    </div>
+  </div></div>
+  <div class="card"><h3>🕘 دوایین ئەنجامەکان</h3><div id="st-recent"></div></div>
+</div>
+
+<!-- SCREENER -->
+<div id="tab-screener" class="hidden">
+  <div class="card"><h3>🔍 سکەنەری زیندوو (1h)</h3>
+    <table><thead><tr><th>دراو</th><th>نرخ</th><th>Bull</th><th>RSI</th></tr></thead>
+    <tbody id="scr-body"><tr><td colspan="4" class="loading">⏳</td></tr></tbody></table>
+  </div>
+</div>
+
+<!-- PORTFOLIO -->
+<div id="tab-portfolio" class="hidden">
+  <div class="card"><h3>📁 پۆرتفۆلیۆی paper</h3><div id="pf-open"><div class="loading">⏳</div></div></div>
+  <div class="card"><h3>📕 داخراوەکان</h3><div id="pf-closed"></div></div>
+</div>
+
+<!-- REFERRAL -->
+<div id="tab-referral" class="hidden">
+  <div class="card"><h3>🎁 سیستەمی ڕێفەڕاڵ</h3>
+    <div class="ref-link" id="ref-link">...</div>
+    <button class="btn" onclick="copyRef()">کۆپی لینک 📋</button>
+    <div style="height:12px"></div>
+    <div class="note">هاوڕێکانت: <b id="ref-n">0</b></div>
+    <div class="prog"><i id="ref-bar" style="width:0%"></i></div>
+    <div class="note">هەر ٣ هاوڕێ = ٣٠ ڕۆژ VIP 💎</div>
+  </div>
+</div>
+
+<nav class="tabs">
+  <button id="b-home" class="act" onclick="showTab('home')"><span class="i">🏠</span>HOME</button>
+  <button id="b-signals" onclick="showTab('signals')"><span class="i">📡</span>SIGNALS</button>
+  <button id="b-screener" onclick="showTab('screener')"><span class="i">🔍</span>SCREENER</button>
+  <button id="b-stats" onclick="showTab('stats')"><span class="i">📊</span>STATS</button>
+</nav>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready(); tg.expand();
+try{ tg.setHeaderColor('#0a0e14'); tg.setBackgroundColor('#0a0e14'); }catch(e){}
+const INIT = tg.initData || '';
+
+async function api(path, method='GET', body){
+  const r = await fetch(path, {method,
+    headers:{'Content-Type':'application/json','X-Telegram-Init-Data':INIT},
+    body: body?JSON.stringify(body):undefined});
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+const f4 = x => Number(x).toLocaleString('en-US',{maximumSignificantDigits:4});
+const dt = ts => new Date(ts*1000).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+
+let ME=null;
+async function loadMe(){
+  ME = await api('/api/me');
+  document.getElementById('plan-line').innerHTML =
+    ME.plan==='vip' ? `پلانی تۆ: <b style="color:var(--green)">💎 VIP</b>` : `پلانی تۆ: 🆓 Free — <b>${3}</b> سیگناڵ/ڕۆژ`;
+  const p = ME.prefs||{};
+  for(const k of ['tp_sl_reports','market_analysis','abnormal_signals'])
+    document.getElementById('t-'+k).classList.toggle('on', !!p[k]);
+  const link = 'https://t.me/'+ (tg.initDataUnsafe?.bot_username || 'ggkurdbot') + '?start=ref_'+ME.id;
+  document.getElementById('ref-link').textContent = link;
+  document.getElementById('ref-n').textContent = ME.ref_count;
+  document.getElementById('ref-bar').style.width = Math.min(100, ME.ref_count/3*100)+'%';
+  window._refLink = link;
+}
+async function togglePref(k){
+  const el = document.getElementById('t-'+k);
+  const v = !el.classList.contains('on');
+  el.classList.toggle('on', v);
+  await api('/api/prefs','POST',{key:k, value:v});
+  tg.HapticFeedback?.impactOccurred('light');
+}
+function copyRef(){ navigator.clipboard?.writeText(window._refLink||''); tg.HapticFeedback?.notificationOccurred('success'); }
+function goReferral(){ showTab('referral'); }
+
+function sigCard(s){
+  const long = s.side==='LONG';
+  return `<div class="card sig ${s.side}">
+    <div class="top">
+      <span class="badge ${s.side}">${long?'🟢 LONG':'🔴 SHORT'} ${s.symbol}</span>
+      <span class="score">✅ ${s.score}/100</span>
+    </div>
+    <div class="lv">
+      <div><span>Entry</span><b>${f4(s.entry)}</b></div>
+      <div class="sl"><span>SL</span><b>${f4(s.sl)}</b></div>
+      <div class="tp"><span>TP1</span><b>${f4(s.tp1)}</b></div>
+      <div class="tp"><span>TP2</span><b>${f4(s.tp2)}</b></div>
+      <div class="tp"><span>TP3</span><b>${f4(s.tp3)}</b></div>
+      <div class="tp"><span>TP4</span><b>${f4(s.tp4)}</b></div>
+    </div>
+    <img class="chart" loading="lazy" src="/api/chart/${s.id}" alt="chart">
+    <div class="time">${dt(s.created)} • ${s.tf} • ${s.status}</div>
+    <div style="height:8px"></div>
+    <button class="btn" onclick="enterPaper(${s.id}, this)">ENTER — paper trade 📝</button>
+  </div>`;
+}
+async function loadSignals(){
+  const box = document.getElementById('signals-list');
+  try{
+    const ss = await api('/api/signals');
+    box.innerHTML = ss.length ? ss.map(sigCard).join('') : '<div class="loading">هێشتا سیگناڵ نییە ⏳</div>';
+  }catch(e){ box.innerHTML = '<div class="loading">هەڵە ❌</div>'; }
+}
+async function enterPaper(sid, btn){
+  btn.disabled = true; btn.textContent = '⏳...';
+  try{ await api('/api/paper','POST',{signal_id:sid, qty_usd:100});
+    btn.textContent = '✅ کرایەوە'; tg.HapticFeedback?.notificationOccurred('success');
+  }catch(e){ btn.textContent = '❌ هەڵە'; btn.disabled=false; }
+}
+async function loadStats(){
+  try{
+    const d = await api('/api/stats'), o = d.overall;
+    document.getElementById('st-wr').textContent = o.winrate+'%';
+    document.getElementById('st-w').textContent = o.wins;
+    document.getElementById('st-l').textContent = o.losses;
+    document.getElementById('st-t').textContent = o.total;
+    document.getElementById('st-recent').innerHTML = d.recent.map(s=>
+      `<div class="row"><div class="lbl">${s.side==='LONG'?'🟢':'🔴'} ${s.symbol}</div>
+       <div class="pill">${s.status.toUpperCase()} • ${s.score}</div></div>`).join('') || '<div class="note">—</div>';
+  }catch(e){}
+}
+async function loadScreener(){
+  try{
+    const rows = await api('/api/screener');
+    document.getElementById('scr-body').innerHTML = rows.map((r,i)=>
+      `<tr class="${i<3?'hot':''}"><td>${r.symbol.replace('USDT','')}</td><td>${f4(r.price)}</td>
+       <td>${r.bull}</td><td>${Math.round(r.rsi)}</td></tr>`).join('');
+  }catch(e){}
+}
+async function loadPortfolio(){
+  try{
+    const d = await api('/api/portfolio');
+    const box = document.getElementById('pf-open');
+    box.innerHTML = d.open.length ? d.open.map(t=>{
+      const c = t.pnl_pct>=0 ? 'var(--green)' : 'var(--red)';
+      return `<div class="row"><div class="lbl">${t.side==='LONG'?'🟢':'🔴'} ${t.symbol}<br>
+        <span class="time">entry ${f4(t.entry)}</span></div>
+        <div style="text-align:end"><b style="color:${c}">${t.pnl_pct>=0?'+':''}${t.pnl_pct}%</b><br>
+        <button class="pill" onclick="closePaper(${t.id})">داخستن</button></div></div>`;
+    }).join('') : '<div class="note">هیچ پۆزیشنێکی کراوە نییە</div>';
+    document.getElementById('pf-closed').innerHTML = d.closed.length ? d.closed.map(t=>
+      `<div class="row"><div class="lbl">${t.symbol} ${t.side}</div>
+       <b style="color:${t.pnl_pct>=0?'var(--green)':'var(--red)'}">${t.pnl_pct>=0?'+':''}${t.pnl_pct}%</b></div>`).join('')
+      : '<div class="note">—</div>';
+  }catch(e){}
+}
+async function closePaper(id){
+  const d = await api('/api/paper-close','POST',{id});
+  tg.HapticFeedback?.notificationOccurred('success');
+  loadPortfolio();
+}
+function showTab(name){
+  for(const t of ['home','signals','screener','stats','portfolio','referral'])
+    document.getElementById('tab-'+t)?.classList.add('hidden');
+  document.getElementById('tab-'+name).classList.remove('hidden');
+  for(const t of ['home','signals','screener','stats'])
+    document.getElementById('b-'+t)?.classList.toggle('act', t===name);
+  if(name==='signals') loadSignals();
+  if(name==='stats') loadStats();
+  if(name==='screener') loadScreener();
+  if(name==='portfolio') loadPortfolio();
+  window.scrollTo(0,0);
+}
+loadMe().catch(()=>{});
+</script>
+</body>
+</html>
