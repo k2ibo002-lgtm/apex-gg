@@ -21,6 +21,13 @@ import pandas as pd
 import numpy as np
 import requests
 
+# numpy -> postgres: adapt numpy scalars so psycopg2 never emits "np.float64(...)" in SQL
+import psycopg2.extensions as _pge
+_pge.register_adapter(np.float64, lambda v: _pge.AsIs(float(v)))
+_pge.register_adapter(np.float32, lambda v: _pge.AsIs(float(v)))
+_pge.register_adapter(np.int64, lambda v: _pge.AsIs(int(v)))
+_pge.register_adapter(np.int32, lambda v: _pge.AsIs(int(v)))
+
 
 import psycopg2, psycopg2.extras
 
