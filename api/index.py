@@ -914,13 +914,17 @@ def signal_text(s):
     return "\n".join(lines)
 
 
-def tp_reply_text(s, new_level):
+def tp_reply_text(s, new_level, exit_px=None):
     """GGShot-style TP-hit reply (spot, no leverage). new_level: 1..4 or 'sl'."""
     s = dict(s)
     base = s["symbol"].replace("USDT", "")
     e = s["entry"]
     if new_level == "sl":
-        lpct = pct(e, s["sl"])
+        px = exit_px if exit_px is not None else s["sl"]
+        lpct = pct(e, px)
+        if lpct >= 0:
+            return (f"<b>#{base}</b> profit secured \U0001F4B0\n\n"
+                    f"This signal printed:\n<b>{lpct:+.2f}% (spot)</b>")
         return (f"<b>#{base}</b> stopped out \U0001F6D1\n\n"
                 f"This signal printed:\n<b>{lpct:+.2f}% (spot)</b>")
     tps = [s["tp1"], s["tp2"], s["tp3"], s["tp4"]]
@@ -1224,6 +1228,10 @@ def track_outcomes():
     Same-candle policy: the highest TP touched in a candle wins; SL only
     counts when no TP was touched in that candle. Notifies (as a reply with
     a fresh TradingView chart) only when the level advances.
+
+    Trailing stop: after TP1 prints the stop moves to breakeven (entry);
+    after TP2 -> TP1; after TP3 -> TP2. A signal that secured profit can
+    never close at a loss.
     """
     print("outcome check start", flush=True)
     for row in open_signals():
@@ -1241,30 +1249,41 @@ def track_outcomes():
         cur_lvl = _signal_level(s["status"])
         new_lvl = cur_lvl
         sl_hit = False
+        exit_px = None
         for _, r_ in df.iterrows():
+            # trailing stop ratchets up as TPs are secured
+            if new_lvl >= 3:
+                eff_sl = tps[1]      # TP3 secured -> stop at TP2
+            elif new_lvl == 2:
+                eff_sl = tps[0]      # TP2 secured -> stop at TP1
+            elif new_lvl == 1:
+                eff_sl = s["entry"]  # TP1 secured -> breakeven
+            else:
+                eff_sl = s["sl"]     # nothing secured -> original SL
             if s["side"] == "LONG":
                 lvl = 0
                 for n_, tp in enumerate(tps, 1):
                     if r_["h"] >= tp:
                         lvl = n_
-                sl = r_["l"] <= s["sl"]
+                sl = r_["l"] <= eff_sl
             else:
                 lvl = 0
                 for n_, tp in enumerate(tps, 1):
                     if r_["l"] <= tp:
                         lvl = n_
-                sl = r_["h"] >= s["sl"]
+                sl = r_["h"] >= eff_sl
             if lvl > new_lvl:
                 new_lvl = lvl
             if sl and lvl == 0:
                 sl_hit = True
+                exit_px = eff_sl
                 break
             if new_lvl >= 4:
                 break
         if sl_hit:
             update_signal(s["id"], "sl")
-            print(f"signal {s['id']} -> sl", flush=True)
-            _notify_progress(s, df, "sl")
+            print(f"signal {s['id']} -> sl @ {exit_px}", flush=True)
+            _notify_progress(s, df, "sl", exit_px=exit_px)
         elif new_lvl > cur_lvl:
             st = _level_status(new_lvl)
             update_signal(s["id"], st)
@@ -1272,12 +1291,13 @@ def track_outcomes():
             _notify_progress(s, df, new_lvl)
 
 
-def _notify_progress(s, df, new_level):
+def _notify_progress(s, df, new_level, exit_px=None):
     """Reply to the original signal message with a fresh TradingView chart."""
     hits = list(range(1, new_level + 1)) if isinstance(new_level, int) else []
     e = s["entry"]
     if new_level == "sl":
-        callout = "Stopped\n{:+.2f}%".format(pct(e, s["sl"]))
+        px = exit_px if exit_px is not None else s["sl"]
+        callout = "Stopped\n{:+.2f}%".format(pct(e, px))
     else:
         tp = [s["tp1"], s["tp2"], s["tp3"], s["tp4"]][new_level - 1]
         tag = "Long" if s["side"] == "LONG" else "Short"
@@ -1293,7 +1313,7 @@ def _notify_progress(s, df, new_level):
     except Exception as ex:
         print("progress chart failed:", ex, flush=True)
         path = None
-    caption = tp_reply_text(s, new_level)
+    caption = tp_reply_text(s, new_level, exit_px=exit_px)
     for uid in signal_recipients(s["id"]):
         try:
             if not get_prefs(uid).get("tp_sl_reports", True):
