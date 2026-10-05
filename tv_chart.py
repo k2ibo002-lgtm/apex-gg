@@ -328,7 +328,7 @@ setTimeout(() => {
       _ln.setAttribute('stroke', _TPSL_COLS[_li]);
       _ln.setAttribute('stroke-width', '1');
       _ln.setAttribute('stroke-dasharray', '4,4');
-      _ln.setAttribute('opacity', '0.45');  // Pale
+      _ln.setAttribute('opacity', '0.7');  // Pale but visible
       _svg.appendChild(_ln);
     }});
   }}
