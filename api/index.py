@@ -49,8 +49,8 @@ WEBAPP_URL = os.environ.get("APEX_WEBAPP_URL", "")
 TIMEFRAME = "30m"
 HTF = "4h"
 KLIMIT = 300
-BUY_LEVEL = 85
-SELL_LEVEL = 85
+BUY_LEVEL = 95
+SELL_LEVEL = 95
 # EMERGENCY STOP: set to True to halt all signals
 SIGNALS_PAUSED = False
 SIGNAL_COOLDOWN_H = 12
