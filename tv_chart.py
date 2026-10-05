@@ -2,6 +2,9 @@
 
 Used by the GitHub Actions scanner (Telegram signal + TP-reply charts).
 Falls back gracefully when playwright/Chromium is unavailable.
+
+VERSION: 2026-10-05-1505-SVGDOTTED (pale limited-extent TP lines via SVG)
+If chart shows full-width dotted TP lines, this version is NOT deployed.
 """
 import base64
 import io
@@ -310,6 +313,25 @@ setTimeout(() => {
     _d.innerHTML = 'GG KURD:Trailing Stop Loss <b>' + _st.value.toFixed(__PXP__) + '</b>';
     document.getElementById('tv').appendChild(_d);
   }
+  // TP/SL dotted lines as SVG (pale, limited extent, green for LONG / red for SHORT)
+  const _sigX = chart.timeScale().timeToCoordinate(__SIGTIME__);
+  if (_sigX != null) {{
+    const _lineEndX = Math.min(_sigX + 500, __W__ - 80);  // Limited extent, not full width
+    _TPSL.forEach((p, _li) => {{
+      const _ly2 = cs.priceToCoordinate(p);
+      if (_ly2 == null) return;
+      const _ln = document.createElementNS(svgNS, 'line');
+      _ln.setAttribute('x1', _sigX);
+      _ln.setAttribute('y1', _ly2);
+      _ln.setAttribute('x2', _lineEndX);
+      _ln.setAttribute('y2', _ly2);
+      _ln.setAttribute('stroke', _TPSL_COLS[_li]);
+      _ln.setAttribute('stroke-width', '1');
+      _ln.setAttribute('stroke-dasharray', '4,4');
+      _ln.setAttribute('opacity', '0.45');  // Pale
+      _svg.appendChild(_ln);
+    }});
+  }}
   // TP/SL labels as divs (same pattern as Trailing Stop which works)
   // Show ALL labels, clamping off-chart prices to edges
   const _LVLS = __LEVELS_JSON__;
@@ -364,7 +386,7 @@ setTimeout(() => {
   });
 })();
 }, 120);
-""".replace("__W__", str(width)).replace("__H__", str(height)).replace("__PXP__", str(pxp)).replace("__LEVELS_JSON__", _levels_json).replace("__COL__", col).replace("__PMAX__", str(_pmax)).replace("__PMIN__", str(_pmin))
+""".replace("__W__", str(width)).replace("__H__", str(height)).replace("__PXP__", str(pxp)).replace("__LEVELS_JSON__", _levels_json).replace("__COL__", col).replace("__PMAX__", str(_pmax)).replace("__PMIN__", str(_pmin)).replace("__SIGTIME__", str(int(sig_time)))
 
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>html,body{{margin:0;padding:0;background:#000;overflow:hidden}}
@@ -415,10 +437,10 @@ const TRD = {json.dumps(tr)};
 const DASH = LightweightCharts.LineStyle.Dashed;
 const TPS = {json.dumps([round(t, 10) for t in tps])};
 const NAMES = ['APEX:Take Profit','APEX:Take Profit 2','APEX:Take Profit 3','APEX:Take Profit 4'];
-TPS.forEach((p) => cs.createPriceLine({{ price: p, color: '{col}', lineWidth: 1,
-  lineStyle: DASH, axisLabelVisible: false, title: '' }}));
-cs.createPriceLine({{ price: {sl:.10f}, color: '{DN}', lineWidth: 1,
-  lineStyle: DASH, axisLabelVisible: false, title: '' }});
+// TP/SL dotted lines drawn as SVG (for control over extent and opacity)
+// Instead of createPriceLine (which spans full width)
+const _TPSL = {json.dumps([round(t, 10) for t in tps] + [round(float(sl), 10)])};
+const _TPSL_COLS = {json.dumps(['{col}']*4 + ['{DN}'])};
 {_svg_js}
 cs.setMarkers({json.dumps(markers)});
 const TP_HITS = {json.dumps(tp_hit_data)};
