@@ -265,7 +265,7 @@ def open_signals():
 
 
 def update_signal(sid, status):
-    final = status in ("tp4", "sl", "expired")
+    final = status in ("tp4", "sl", "expired", "be", "win2", "win3")
     if final:
         _exec("UPDATE signals SET status=%s, closed=%s WHERE id=%s",
               (status, int(time.time()), sid))
@@ -282,36 +282,40 @@ def signal_recipients(sid):
     return [r["user_id"] for r in _all("SELECT user_id FROM deliveries WHERE signal_id=%s", (sid,))]
 
 
+WIN_STATUSES = ("tp4", "win2", "win3")
+
+
 def stats_overall():
-    """Only finalized signals count: tp4 = win, sl = loss."""
+    """Win = 2+ targets hit (tp4/win2/win3); loss = real SL; be/expired neutral."""
     rows = _all("SELECT status, COUNT(*) n FROM signals "
-                "WHERE status IN ('tp4','sl','expired') GROUP BY status")
+                "WHERE status IN ('tp4','win2','win3','sl','be','expired') GROUP BY status")
     d = {r["status"]: r["n"] for r in rows}
-    wins = d.get("tp4", 0)
+    wins = d.get("tp4", 0) + d.get("win2", 0) + d.get("win3", 0)
     losses = d.get("sl", 0)
+    breakeven = d.get("be", 0)
     expired = d.get("expired", 0)
     prog = _one("SELECT COUNT(*) n FROM signals WHERE status IN ('open','tp1','tp2','tp3')")["n"]
     total = wins + losses
-    return {"wins": wins, "losses": losses, "expired": expired,
+    return {"wins": wins, "losses": losses, "breakeven": breakeven, "expired": expired,
             "in_progress": prog, "total": total,
             "winrate": round(100 * wins / total, 1) if total else 0.0}
 
 
 def _winrate(rows):
-    w = sum(1 for r in rows if r["status"] == "tp4")
-    t = len(rows)
+    w = sum(1 for r in rows if r["status"] in WIN_STATUSES)
+    t = sum(1 for r in rows if r["status"] in WIN_STATUSES or r["status"] == "sl")
     return round(100 * w / t, 1) if t else None
 
 
 def signal_stats():
     """GGShot-style stats from real finalized signals (tp4=win, sl=loss)."""
-    fin = _all("SELECT side, status FROM signals WHERE status IN ('tp4','sl')")
+    fin = _all("SELECT side, status FROM signals WHERE status IN ('tp4','win2','win3','sl')")
     longs = [r for r in fin if r["side"] == "LONG"]
     shorts = [r for r in fin if r["side"] == "SHORT"]
     out = {"accuracy": _winrate(fin), "longs": _winrate(longs), "shorts": _winrate(shorts),
            "n": len(fin)}
     for k, n in (("last5", 5), ("last10", 10), ("last20", 20)):
-        rows = _all("SELECT status FROM signals WHERE status IN ('tp4','sl') "
+        rows = _all("SELECT status FROM signals WHERE status IN ('tp4','win2','win3','sl') "
                     "ORDER BY id DESC LIMIT %s", (n,))
         out[k] = _winrate(rows)
     return out
@@ -922,10 +926,16 @@ def tp_reply_text(s, new_level, exit_px=None):
     if new_level == "sl":
         px = exit_px if exit_px is not None else s["sl"]
         lpct = pct(e, px)
-        if lpct >= 0:
-            return (f"<b>#{base}</b> profit secured \U0001F4B0\n\n"
-                    f"This signal printed:\n<b>{lpct:+.2f}% (spot)</b>")
         return (f"<b>#{base}</b> stopped out \U0001F6D1\n\n"
+                f"This signal printed:\n<b>{lpct:+.2f}% (spot)</b>")
+    if new_level == "be":
+        return (f"<b>#{base}</b> breakeven \U00002705\n\n"
+                f"This signal printed:\n<b>+0.00% (spot)</b>")
+    if new_level in ("win2", "win3"):
+        px = exit_px if exit_px is not None else e
+        lpct = pct(e, px)
+        n = "two" if new_level == "win2" else "three"
+        return (f"<b>#{base}</b> {n} targets done, profit secured \U0001F4B0\n\n"
                 f"This signal printed:\n<b>{lpct:+.2f}% (spot)</b>")
     tps = [s["tp1"], s["tp2"], s["tp3"], s["tp4"]]
     tp = tps[new_level - 1]
@@ -1215,7 +1225,8 @@ def scan_once():
         except Exception:
             pass
 def _signal_level(status):
-    return {"open": 0, "tp1": 1, "tp2": 2, "tp3": 3, "tp4": 4}.get(status, 0)
+    return {"open": 0, "tp1": 1, "tp2": 2, "tp3": 3, "tp4": 4,
+            "win2": 2, "win3": 3, "be": 1, "sl": 0}.get(status, 0)
 
 
 def _level_status(lvl):
@@ -1281,9 +1292,19 @@ def track_outcomes():
             if new_lvl >= 4:
                 break
         if sl_hit:
-            update_signal(s["id"], "sl")
-            print(f"signal {s['id']} -> sl @ {exit_px}", flush=True)
-            _notify_progress(s, df, "sl", exit_px=exit_px)
+            # final outcome depends on how many targets were secured:
+            # win = 2+ targets, be = breakeven (neutral), sl = real loss
+            if new_lvl >= 3:
+                final = "win3"      # 3 targets, stopped at TP2 profit
+            elif new_lvl == 2:
+                final = "win2"      # 2 targets, stopped at TP1 profit
+            elif new_lvl == 1:
+                final = "be"        # 1 target, stopped at breakeven
+            else:
+                final = "sl"        # no target hit, real loss
+            update_signal(s["id"], final)
+            print(f"signal {s['id']} -> {final} @ {exit_px}", flush=True)
+            _notify_progress(s, df, final, exit_px=exit_px)
         elif new_lvl > cur_lvl:
             st = _level_status(new_lvl)
             update_signal(s["id"], st)
@@ -1293,11 +1314,22 @@ def track_outcomes():
 
 def _notify_progress(s, df, new_level, exit_px=None):
     """Reply to the original signal message with a fresh TradingView chart."""
-    hits = list(range(1, new_level + 1)) if isinstance(new_level, int) else []
+    if isinstance(new_level, int):
+        hits = list(range(1, new_level + 1))
+    elif new_level == "win3":
+        hits = [1, 2, 3]
+    elif new_level == "win2":
+        hits = [1, 2]
+    elif new_level == "be":
+        hits = [1]
+    else:
+        hits = []
     e = s["entry"]
-    if new_level == "sl":
+    if new_level in ("sl", "be", "win2", "win3"):
         px = exit_px if exit_px is not None else s["sl"]
-        callout = "Stopped\n{:+.2f}%".format(pct(e, px))
+        tag = {"sl": "Stopped", "be": "Breakeven",
+               "win2": "2 Targets", "win3": "3 Targets"}[new_level]
+        callout = f"{tag}\n{pct(e, px):+.2f}%"
     else:
         tp = [s["tp1"], s["tp2"], s["tp3"], s["tp4"]][new_level - 1]
         tag = "Long" if s["side"] == "LONG" else "Short"
