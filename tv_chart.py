@@ -41,6 +41,8 @@ def coin_icon_b64(symbol):
             pass
     urls = [
         f"https://assets.coincap.io/assets/icons/{base}@2x.png",
+        f"https://cryptoicons.org/api/icon/{base}/200",
+        f"https://s2.coinmarketcap.com/static/img/coins/64x64/{base}.png",
     ]
     for u in urls:
         try:
@@ -177,9 +179,10 @@ def render_tv_chart(df, sig, out_path, hits=None, callout=None, width=1280, heig
             _l["y"] = round(_l["y"] - _sh, 1)
     _levels_json = json.dumps(_lvls_y)
     icon = coin_icon_b64(sig["symbol"])
+    _sym_short = sig['symbol'][:-4] if sig['symbol'].endswith('USDT') else sig['symbol']
     icon_html = (f'<img src="data:image/png;base64,{icon}" '
                  'style="width:18px;height:18px;vertical-align:-3px;border-radius:50%"> '
-                 if icon else '<span style="color:#7b3ff2">\u25cf</span> ')
+                 if icon else f'<span style="display:inline-block;width:18px;height:18px;vertical-align:-3px;border-radius:50%;background:#7b3ff2;color:#fff;font:700 10px Inter,sans-serif;text-align:center;line-height:18px;margin-right:4px">{_sym_short[0]}</span> ')
 
     # Supertrend trailing line (GGShot style): green in uptrend, red in downtrend.
     times = [c["time"] for c in candles]
@@ -308,11 +311,50 @@ setTimeout(() => {
     document.getElementById('tv').appendChild(_d);
   }
   // TP/SL labels as divs (same pattern as Trailing Stop which works)
+  // Show ALL labels, clamping off-chart prices to edges
   const _LVLS = __LEVELS_JSON__;
   const _bgc2 = '__COL__';
+  // First pass: get Y for each, clamp nulls to edges
+  let _litems = [];
   _LVLS.forEach(l => {
-    const _ly = cs.priceToCoordinate(l.price);
-    if (_ly == null) return;
+    let _ly = cs.priceToCoordinate(l.price);
+    if (_ly == null) {
+      // Off-chart: clamp to top (if above) or bottom (if below)
+      // Compare price to chart's visible center
+      _ly = 0; // Will be fixed in second pass
+      _litems.push({l: l, y: _ly, offchart: true});
+    } else {
+      _litems.push({l: l, y: _ly, offchart: false});
+    }
+  });
+  // For off-chart items, place at edges with stacking
+  // SHORT: TPs below -> stack at bottom. LONG: TPs above -> stack at top.
+  // Order in _LVLS is top-to-bottom, so off-chart-below items go to bottom.
+  let _topY = 30, _botY = __H__ - 30;
+  // Count off-chart at top vs bottom by price relative to visible ones
+  _litems.forEach(it => {
+    if (!it.offchart) return;
+    // If price is higher than all visible, it's above; else below
+    // Simple heuristic: use LVLS order - first items are top, last are bottom
+    const _idx = _litems.indexOf(it);
+    // For SHORT, LVLS = [SL, TP1, TP2, TP3, TP4], SL is top
+    // For LONG, LVLS = [TP4, TP3, TP2, TP1, SL], TP4 is top
+    // Off-chart items at start -> top, at end -> bottom
+    if (_idx < _litems.length / 2) {
+      it.y = _topY;
+      _topY += 32;
+    } else {
+      it.y = _botY;
+      _botY -= 32;
+    }
+    it.offchart = false;
+  });
+  // Apply gap to avoid overlap
+  for (let _i = 1; _i < _litems.length; _i++) {
+    if (_litems[_i].y - _litems[_i-1].y < 28) _litems[_i].y = _litems[_i-1].y + 28;
+  }
+  _litems.forEach(it => {
+    const l = it.l, _ly = it.y;
     const _ld = document.createElement('div');
     _ld.className = 'plabel ' + (l.cls === 'tp' ? 'tp' : 'sl');
     _ld.style.top = _ly + 'px';
