@@ -710,6 +710,16 @@ def analyze(symbol):
             entry = price
             sl = entry + config.SL_ATR * a
             tps = [entry - m_ * a for m_ in config.TP_ATRS]
+            # Clamp TPs to positive (avoid negative for low-priced coins)
+            # Maintain descending order: TP1 > TP2 > TP3 > TP4 > 0
+            _min_tick = 10 ** (-8)  # Smallest sensible price
+            for _i in range(len(tps)):
+                if tps[_i] <= 0:
+                    tps[_i] = _min_tick
+            # Ensure strict descending order
+            for _i in range(1, len(tps)):
+                if tps[_i] >= tps[_i-1]:
+                    tps[_i] = tps[_i-1] * 0.9
         sig = {"symbol": symbol, "tf": config.TIMEFRAME, "side": side,
                "entry": entry, "sl": sl, "tp1": tps[0], "tp2": tps[1],
                "tp3": tps[2], "tp4": tps[3], "score": bull if side == "LONG" else bear}
@@ -806,7 +816,7 @@ def tv_chart_png(df, sig, out_path, hits=None, callout=None, sig_time=None):
             _sys.path.insert(0, _root)
         from tv_chart import render_tv_chart
         return render_tv_chart(df, sig, out_path, hits=hits, callout=callout,
-                               sig_time=sig_time)
+                               sig_time=sig_time, show_get_ready=True)
     except Exception as e:
         print("tv chart unavailable, matplotlib fallback:", str(e)[:150], flush=True)
         a = df["h"] - df["l"]
