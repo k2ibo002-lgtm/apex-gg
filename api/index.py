@@ -49,8 +49,8 @@ WEBAPP_URL = os.environ.get("APEX_WEBAPP_URL", "")
 TIMEFRAME = "30m"
 HTF = "4h"
 KLIMIT = 300
-BUY_LEVEL = 75
-SELL_LEVEL = 75
+BUY_LEVEL = 85
+SELL_LEVEL = 85
 SIGNAL_COOLDOWN_H = 12
 
 SL_ATR = 2.0
@@ -227,6 +227,11 @@ def all_user_ids():
 
 def save_signal(s):
     import random
+    # Daily cap: max 15 signals per day
+    _day_start = int(time.time()) - 86400
+    _count = _one("SELECT COUNT(*) n FROM signals WHERE created >= %s", (_day_start,))["n"]
+    if _count >= 15:
+        return None  # Daily limit reached, skip
     uid = f"#ID{int(time.time())}{random.randint(1000, 9999)}"
     s["signal_uid"] = uid
     c = _conn()
@@ -768,13 +773,18 @@ def analyze(symbol):
     price = c.iloc[-1]
 
     # === WIN-RATE FILTERS (added 2026-10-05) ===
-    # 1. Market Regime: only trade in strong trends (ADX >= 20)
+    # 1. Market Regime: only trade in strong trends (ADX >= 25)
     _adx = adx_v.iloc[-1]
-    _regime_ok = _adx >= 20
+    _regime_ok = _adx >= 25
 
     # 2. Volatility: skip if ATR too small relative to price (chop)
     _atr_ratio = (a / price) if price > 0 else 0
-    _vol_ok = _atr_ratio >= 0.003  # ATR at least 0.3% of price
+    _vol_ok = _atr_ratio >= 0.005  # ATR at least 0.5% of price
+
+    # 3. Volume confirmation: signal candle volume >= 2x average (strict)
+    _v = df["v"].iloc[-1]
+    _v_avg = df["v"].rolling(20).mean().iloc[-1]
+    _vol_conf_ok = _v >= 2.0 * _v_avg if _v_avg > 0 else True
 
     # 3. BTC filter: don't LONG alts when BTC dumping, don't SHORT when pumping
     _btc_ok_long = True
@@ -791,7 +801,7 @@ def analyze(symbol):
         pass
 
     side = None
-    if _regime_ok and _vol_ok:
+    if _regime_ok and _vol_ok and _vol_conf_ok:
         if bull >= config.BUY_LEVEL and _btc_ok_long:
             side = "LONG"
         elif bear >= config.SELL_LEVEL and _btc_ok_short:
