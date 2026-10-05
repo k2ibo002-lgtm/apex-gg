@@ -29,6 +29,7 @@ body{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
   max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:110px;-webkit-font-smoothing:antialiased}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+/* ===== header ===== */
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 16px}
 .logo{display:flex;align-items:center;gap:9px}
 .logo .gg-img{height:52px;width:auto;filter:drop-shadow(0 0 12px rgba(113,218,124,.45))}
@@ -40,6 +41,7 @@ body{
 .menu-wrap .corner.tl{top:0;right:22px;border-right:0;border-bottom:0}
 .menu-wrap .corner.br{bottom:0;right:0;border-left:0;border-top:0}
 .hdr .menu-label{font-size:12px;letter-spacing:4px;color:#c8f5d8;font-weight:700;font-family:ui-monospace,Menlo,monospace;text-shadow:0 0 12px rgba(113,218,124,.4)}
+/* ===== cards & buttons ===== */
 .card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--border);border-radius:24px;margin:0 14px 13px;padding:17px;box-shadow:0 8px 28px rgba(0,0,0,.45)}
 .card-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:2.5px;font-weight:700;font-family:ui-monospace,Menlo,monospace;margin-bottom:4px}
 .card-h svg{width:15px;height:15px;stroke:var(--green);fill:none;stroke-width:2}
@@ -47,6 +49,8 @@ body{
 .btn-green{display:block;width:100%;border:0;cursor:pointer;background:linear-gradient(180deg,#56ae60,#3a7540);color:#fff;font-weight:800;font-size:13px;letter-spacing:1.5px;text-shadow:0 1px 2px rgba(0,0,0,.25);padding:15px;border-radius:13px;box-shadow:0 6px 20px rgba(113,218,124,.25),inset 0 1px 0 rgba(255,255,255,.35)}
 .btn-green:active{transform:scale(.98)}
 .btn-dim{display:block;width:100%;border:1px solid var(--border);cursor:pointer;background:#131a13;color:var(--txt);font-weight:700;font-size:13px;letter-spacing:1px;padding:14px;border-radius:13px;margin-top:10px}
+.expiry{text-align:center;color:var(--mut2);font-size:11.5px;margin:8px 0 14px;letter-spacing:.5px}
+/* ===== settings rows & toggles ===== */
 .srow{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid rgba(255,255,255,.045)}
 .srow:last-child{border-bottom:0}
 .srow svg.ic{width:19px;height:19px;stroke:var(--mut);fill:none;stroke-width:1.8;flex:none}
@@ -57,19 +61,31 @@ body{
 .tgl::after{content:"";position:absolute;top:2.5px;left:3px;width:22px;height:22px;border-radius:50%;background:#7a847a;transition:.25s}
 .tgl.on{background:rgba(90,168,98,.25);border-color:rgba(113,218,124,.6)}
 .tgl.on::after{left:23px;background:var(--green);box-shadow:0 0 10px rgba(113,218,124,.6)}
+/* ===== accuracy slider ===== */
+.acc-wrap{padding:6px 2px 4px}
+.acc-top{display:flex;justify-content:space-between;font-size:12.5px;color:#c9d2c9;margin-bottom:10px}
+.acc-top b{color:var(--green)}
+input[type=range].acc{width:100%;-webkit-appearance:none;appearance:none;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--green) var(--fill,0%),#232a23 var(--fill,0%));outline:none}
+input[type=range].acc::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(113,218,124,.7);cursor:pointer;border:3px solid #04140a}
+input[type=range].acc::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--green);border:3px solid #04140a;cursor:pointer}
+.ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--mut2);margin-top:7px;font-family:ui-monospace,Menlo,monospace}
+/* ===== 3-button row ===== */
 .btn3{display:flex;gap:10px;margin:0 14px 13px}
 .btn3 button{flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 6px;color:var(--txt);font-size:11.5px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;letter-spacing:.5px}
 .btn3 button svg{width:20px;height:20px;stroke:var(--green);fill:none;stroke-width:1.8}
+/* ===== bottom nav ===== */
 .nav{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);width:calc(100% - 28px);max-width:452px;display:flex;background:rgba(13,18,13,.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(113,218,124,.12);border-radius:22px;padding:8px;z-index:50;box-shadow:0 12px 40px rgba(0,0,0,.6)}
 .nitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 8px;border-radius:16px;cursor:pointer;color:var(--mut);transition:.2s}
 .nitem svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
 .nitem span{font-size:9.5px;letter-spacing:1.5px;font-weight:700;font-family:ui-monospace,Menlo,monospace}
 .nitem.active{background:var(--green-dark);color:var(--green)}
 .nitem.active::after{content:"";width:18px;height:2.5px;border-radius:2px;background:var(--green);margin-top:1px}
+/* ===== tabs ===== */
 .tab{display:none;padding-bottom:20px}
 .tab.active{display:block;animation:fade .25s}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .ptitle{text-align:center;font-size:13px;letter-spacing:3px;font-weight:800;font-family:ui-monospace,Menlo,monospace;padding:8px 0 14px}
+/* ===== stats ===== */
 .eq-wrap{margin:0 14px 13px;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:14px;overflow:hidden}
 .eq-wrap canvas{width:100%;height:150px;display:block}
 .kpi4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 14px 13px}
@@ -88,6 +104,7 @@ body{
 .srow2 .pn.r{color:var(--red)}
 .sec-t{font-size:11px;letter-spacing:2.5px;font-weight:700;color:var(--txt);font-family:ui-monospace,Menlo,monospace;margin:16px 18px 10px;display:flex;align-items:center;gap:8px}
 .sec-t svg{width:14px;height:14px;stroke:var(--green);fill:none;stroke-width:2}
+/* ===== signals ===== */
 .search{margin:0 14px 12px;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:10px}
 .search svg{width:17px;height:17px;stroke:var(--mut2);fill:none;stroke-width:2}
 .search input{flex:1;background:none;border:0;outline:0;color:var(--txt);font-size:13.5px}
@@ -98,6 +115,7 @@ body{
 .sig{background:var(--card);border:1px solid var(--border);border-radius:16px;margin:0 14px 11px;padding:14px;cursor:pointer}
 .sig .r1{display:flex;align-items:center;gap:8px;margin-bottom:9px}
 .sym{font-weight:800;font-size:15.5px}
+.lv{font-size:10px;color:var(--mut2);font-weight:700}
 .dir{font-size:10px;font-weight:800;letter-spacing:1px;padding:4px 10px;border-radius:7px}
 .dir.long{background:rgba(113,218,124,.14);color:var(--green)}
 .dir.short{background:rgba(255,82,82,.13);color:var(--red)}
@@ -112,6 +130,7 @@ body{
 .sig .r3{display:flex;justify-content:space-between;font-size:11.5px}
 .pnl{font-weight:800;color:var(--green)} .pnl.r{color:var(--red)}
 .score{display:inline-block;font-size:10.5px;font-weight:800;color:#04140a;background:var(--green);border-radius:6px;padding:2px 8px;margin-left:6px}
+/* ===== signal detail ===== */
 .back{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:13px;padding:4px 18px 10px;cursor:pointer;font-weight:600}
 .chart-box{margin:0 14px 12px;border-radius:16px;overflow:hidden;border:1px solid var(--border);background:#000}
 .chart-box img,.chart-box canvas{width:100%;display:block}
@@ -126,6 +145,7 @@ body{
 .dcell.hit{background:rgba(113,218,124,.09)}
 .dcell.hit .st{color:var(--green);font-weight:700}
 .det-bar{display:flex;align-items:center;gap:10px;margin:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px 14px;font-size:12.5px}
+/* ===== screener ===== */
 .fg-wrap{margin:0 14px 13px;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:16px;text-align:center}
 .fg-num{font-size:34px;font-weight:900;color:var(--green)}
 .fg-lbl{font-size:11px;letter-spacing:2px;color:var(--mut);margin-top:4px;font-weight:700}
@@ -143,6 +163,7 @@ body{
 .frow .fs2{text-align:right;font-family:ui-monospace,Menlo,monospace;color:var(--red)}
 .fhead{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 18px 6px;font-size:10px;letter-spacing:1.5px;color:var(--mut2);font-weight:700}
 .fhead div:nth-child(2){text-align:center}.fhead div:nth-child(3){text-align:right}
+/* ===== modal ===== */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
 .modal.open{display:flex}
 .sheet{background:#0e130e;border:1px solid var(--border);border-radius:22px 22px 0 0;width:100%;max-width:480px;padding:22px 20px 34px;animation:up .28s;max-height:85vh;overflow-y:auto}
@@ -164,11 +185,14 @@ body{
 </style>
 </head>
 <body>
+
+<!-- ================= HOME ================= -->
 <div class="tab active" id="tab-home">
   <div class="hdr">
-    <div class="logo"><img class="gg-img" src="gg-logo.png" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
+    <div class="logo"><img class="gg-img" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
     <div class="menu-wrap"><span class="corner tl"></span><div class="menu-label">MAIN MENU</div><span class="corner br"></span></div>
   </div>
+
   <div class="card">
     <div class="card-h">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -177,6 +201,7 @@ body{
     <div class="sub" id="premStatus">No active subscription</div>
     <button class="btn-green" onclick="openModal('m-premium')">GET PREMIUM</button>
   </div>
+
   <div class="card">
     <div class="card-h">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 5h18l-7 8v6l-4-2v-4L3 5z"/></svg>
@@ -214,6 +239,7 @@ body{
       <div class="chev">›</div>
     </div>
   </div>
+
   <div class="card">
     <div class="card-h">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M7 16V8m0 0L3 12m4-4l4 4M17 8v8m0 0l4-4m-4 4l-4-4"/></svg>
@@ -230,6 +256,7 @@ body{
       <div class="chev">›</div>
     </div>
   </div>
+
   <div class="card">
     <div class="card-h">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.6c2.6.3 4.7 2 5.5 5.4"/></svg>
@@ -243,15 +270,18 @@ body{
     <div class="ref-link" id="refLink">Loading…</div>
     <button class="btn-dim" onclick="copyRef()">COPY INVITE LINK</button>
   </div>
+
   <div class="btn3">
     <button onclick="toast('FAQ — coming soon')"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.8.3-.9 1-.9 1.7"/></svg>FAQ</button>
     <button onclick="goTab('freevip')"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8-6.1-3.4-6.1 3.4 1.4-6.8L2.2 9.1l6.9-.8L12 2z"/></svg>Exchanges</button>
     <button onclick="toast('Support: @ggkurdbot')"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/></svg>Support</button>
   </div>
 </div>
+
+<!-- ================= STATS ================= -->
 <div class="tab" id="tab-stats">
   <div class="hdr">
-    <div class="logo"><img class="gg-img" src="gg-logo.png" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
+    <div class="logo"><img class="gg-img" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
     <div class="menu-wrap"><span class="corner tl"></span><div class="menu-label">STATISTICS</div><span class="corner br"></span></div>
   </div>
   <div class="eq-wrap"><canvas id="eqChart" width="640" height="300"></canvas></div>
@@ -264,9 +294,11 @@ body{
   <div class="seg" id="statSeg"><button class="on" onclick="setSeg(this,'7D')">7D</button><button onclick="setSeg(this,'30D')">30D</button><button onclick="setSeg(this,'90D')">90D</button></div>
   <div id="statsBody"><div class="loading">Loading statistics…</div></div>
 </div>
+
+<!-- ================= SIGNALS ================= -->
 <div class="tab" id="tab-signals">
   <div class="hdr">
-    <div class="logo"><img class="gg-img" src="gg-logo.png" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
+    <div class="logo"><img class="gg-img" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
     <div class="menu-wrap"><span class="corner tl"></span><div class="menu-label">SIGNALS</div><span class="corner br"></span></div>
   </div>
   <div class="search">
@@ -281,9 +313,11 @@ body{
   </div>
   <div id="sigsBody"><div class="loading">Loading signals…</div></div>
 </div>
+
+<!-- ================= SCREENER ================= -->
 <div class="tab" id="tab-screener">
   <div class="hdr">
-    <div class="logo"><img class="gg-img" src="gg-logo.png" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
+    <div class="logo"><img class="gg-img" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
     <div class="menu-wrap"><span class="corner tl"></span><div class="menu-label">SCREENER</div><span class="corner br"></span></div>
   </div>
   <div class="sec-t"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>VALIDATOR MARKET ANALYSIS</div>
@@ -295,16 +329,20 @@ body{
   <div class="seg" id="scrSeg"><button class="on" onclick="scrTab(this,'open')">OPEN</button><button onclick="scrTab(this,'funding')">FUNDING</button><button onclick="scrTab(this,'whales')">WHALES</button></div>
   <div id="scrBody"><div class="loading">Scanning market…</div></div>
 </div>
+
+<!-- ================= PORTFOLIO ================= -->
 <div class="tab" id="tab-portfolio">
   <div class="hdr">
-    <div class="logo"><img class="gg-img" src="gg-logo.png" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
+    <div class="logo"><img class="gg-img" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
     <div class="menu-wrap"><span class="corner tl"></span><div class="menu-label">PORTFOLIO</div><span class="corner br"></span></div>
   </div>
   <div id="pfBody"><div class="loading">Loading portfolio…</div></div>
 </div>
+
+<!-- ================= FREE VIP ================= -->
 <div class="tab" id="tab-freevip">
   <div class="hdr">
-    <div class="logo"><img class="gg-img" src="gg-logo.png" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
+    <div class="logo"><img class="gg-img" alt="GG"><div class="vdiv"></div><div class="tt"><b>KURD</b><span>BOT</span></div></div>
     <div class="menu-wrap"><span class="corner tl"></span><div class="menu-label">FREE VIP</div><span class="corner br"></span></div>
   </div>
   <div class="card">
@@ -314,10 +352,14 @@ body{
     <div class="plan" onclick="toast('Bybit partner link — coming soon')"><b>Bybit</b><div class="pr">30 days VIP</div><small>Register + deposit $100</small></div>
   </div>
 </div>
+
+<!-- ================= SIGNAL DETAIL ================= -->
 <div class="tab" id="tab-detail">
   <div class="back" onclick="goTab('signals')">‹ Back to signals</div>
   <div id="detBody"></div>
 </div>
+
+<!-- ================= NAV ================= -->
 <div class="nav">
   <div class="nitem active" id="n-home" onclick="goTab('home')">
     <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg><span>HOME</span>
@@ -332,6 +374,8 @@ body{
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>SCREENER</span>
   </div>
 </div>
+
+<!-- ================= MODALS ================= -->
 <div class="modal" id="m-lang"><div class="sheet">
   <h3>Language</h3><p>Choose your language.</p>
   <div class="lang-opt on" onclick="setLang('English')">🇬🇧 English</div>
@@ -339,6 +383,7 @@ body{
   <div class="lang-opt" onclick="setLang('Arabic')">🌙 عربي</div>
   <button class="btn-dim" onclick="closeModal('m-lang')">CLOSE</button>
 </div></div>
+
 <div class="modal" id="m-premium"><div class="sheet">
   <h3>Get Premium</h3><p>Unlock all signals, screener, statistics and auto-trading.</p>
   <div class="plan on" onclick="selPlan(this)"><b>1 Month</b><div class="pr">$29</div><small>Full access for 30 days</small></div>
@@ -347,7 +392,10 @@ body{
   <button class="btn-green" style="margin-top:14px" onclick="toast('Payment — coming soon')">SUBSCRIBE</button>
   <button class="btn-dim" onclick="closeModal('m-premium')">CLOSE</button>
 </div></div>
+
 <script>
+const LOGO="data:image/png;base64,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";
+document.querySelectorAll("img.gg-img").forEach(i=>{i.src=LOGO});
 const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 if(tg){ tg.ready(); tg.expand(); }
 const qs = new URLSearchParams(location.search);
@@ -360,6 +408,7 @@ async function api(path, opts){
   if(!r.ok) throw new Error("HTTP "+r.status);
   return r.json();
 }
+/* ---------- nav ---------- */
 const TABS = ["home","stats","signals","screener","portfolio","freevip","detail"];
 function showTab(name){
   TABS.forEach(t=>{ const el=document.getElementById("tab-"+t); if(el) el.classList.toggle("active",t===name); });
@@ -369,6 +418,7 @@ function showTab(name){
 function goTab(name){ showTab(name);
   if(name==="stats")loadStats(); if(name==="signals")loadSignals();
   if(name==="screener")loadScreener(); if(name==="portfolio")loadPortfolio(); }
+/* ---------- helpers ---------- */
 function flip(el){ el.classList.toggle("on"); }
 function toast(m){ if(tg&&tg.showPopup){tg.showPopup({message:m});} else alert(m); }
 function openModal(id){ document.getElementById(id).classList.add("open"); }
@@ -378,12 +428,14 @@ function selPlan(el){ el.parentElement.querySelectorAll(".plan").forEach(p=>p.cl
 function copyRef(){ const t=document.getElementById("refLink").textContent; if(navigator.clipboard) navigator.clipboard.writeText(t); toast("Invite link copied!"); }
 function fmtP(x){ if(x==null||isNaN(x))return "—"; const a=Math.abs(x); let d=2; if(a>0&&a<0.01)d=6; else if(a<1)d=4; return Number(x).toFixed(d); }
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function accCh(el){ document.getElementById("accVal").textContent=el.value+"%"; el.style.setProperty("--fill",el.value+"%"); }
+/* ---------- home ---------- */
 async function loadHome(){
   try{
     const me = await api("/api/me");
     const sub = me.subscription || me.plan || "free";
     const vip = (sub!=="free" && sub!=="none");
-    document.getElementById("premStatus").innerHTML = vip ? ("Active — <b style='color:var(--green)'>"+String(sub).toUpperCase()+"</b>") : "No active subscription";
+    document.getElementById("premStatus").textContent = vip ? ("VIP active — "+String(sub).toUpperCase()) : "No active subscription";
     const rc = me.referral_count!=null?me.referral_count:(me.referrals!=null?me.referrals:0);
     document.getElementById("refCount").textContent = rc;
     document.getElementById("refLink").textContent = me.referral_link || me.invite_link || "—";
@@ -392,6 +444,7 @@ async function loadHome(){
     document.getElementById("refLink").textContent = "—";
   }
 }
+/* ---------- equity chart ---------- */
 function drawEquity(points){
   const c = document.getElementById("eqChart"); if(!c) return;
   const x = c.getContext("2d"); const W=c.width,H=c.height;
@@ -409,6 +462,7 @@ function drawEquity(points){
   points.forEach((v,i)=>x.lineTo(px(i),py(v)));
   x.strokeStyle="#71da7c"; x.lineWidth=3; x.stroke();
 }
+/* ---------- stats (REAL DB ONLY) ---------- */
 let statPeriod="7D";
 function setSeg(el,p){ el.parentElement.querySelectorAll("button").forEach(x=>x.classList.remove("on")); el.classList.add("on"); statPeriod=p; loadStats(); }
 async function loadStats(){
@@ -433,12 +487,13 @@ async function loadStats(){
     if(s.best_signals&&s.best_signals.length){
       h+='<div class="sec-t"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg>BEST SIGNALS</div>';
       s.best_signals.forEach((t,i)=>{
-        h+='<div class="srow2"><div class="rank">#'+(i+1)+'</div><div class="nm">'+esc((t.symbol||"").replace("USDT",""))+'<small>'+esc(t.side||"")+' '+(t.leverage||"")+'</small></div><div class="pn">+'+Number(t.pnl||0).toFixed(1)+'%</div></div>';
+        h+='<div class="srow2"><div class="rank">#'+(i+1)+'</div><div class="nm">'+esc((t.symbol||"").replace("USDT",""))+'<small>'+esc(t.side||"")+'</small></div><div class="pn">+'+Number(t.pnl||0).toFixed(1)+'%</div></div>';
       });
     }
     b.innerHTML=h||'<div class="empty">No closed signals yet.</div>';
   }catch(e){ b.innerHTML='<div class="empty">No data yet.</div>'; drawEquity([]); }
 }
+/* ---------- signals (REAL DB ONLY) ---------- */
 let sigCache=[], sigFilter="ALL";
 function sigTab(el,f){ el.parentElement.querySelectorAll("button").forEach(x=>x.classList.remove("on")); el.classList.add("on"); sigFilter=f; renderSigs(); }
 function filterSigs(){ renderSigs(); }
@@ -509,6 +564,7 @@ function openDetail(i){
     +(pnl!=null?'<div class="pnl'+(pnl<0?" r":"")+'">'+(pnl>=0?"+":"")+pnl.toFixed(1)+'%</div>':"")+'</div>';
   showTab("detail");
 }
+/* ---------- screener (REAL DB ONLY) ---------- */
 let scrMode="open";
 function scrTab(el,m){ el.parentElement.querySelectorAll("button").forEach(x=>x.classList.remove("on")); el.classList.add("on"); scrMode=m; loadScreener(); }
 async function loadScreener(){
@@ -549,6 +605,7 @@ async function loadScreener(){
     }
   }catch(e){ b.innerHTML='<div class="empty">Could not load screener.</div>'; }
 }
+/* ---------- portfolio ---------- */
 async function loadPortfolio(){
   const b=document.getElementById("pfBody");
   try{
@@ -562,6 +619,7 @@ async function loadPortfolio(){
     }).join("");
   }catch(e){ b.innerHTML='<div class="empty">No data yet.</div>'; }
 }
+/* ---------- init ---------- */
 loadHome();
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{ if(e.target===m) m.classList.remove("open"); }));
 </script>
