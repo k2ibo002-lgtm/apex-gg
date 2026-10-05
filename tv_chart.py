@@ -403,8 +403,9 @@ const cs = chart.addCandlestickSeries({{ upColor: 'transparent', downColor: '#c6
 const CANDLES = {json.dumps(candles)};
 cs.setData(CANDLES);
 // Hidden series to force price scale to include all TP/SL levels (so all labels visible)
+// Note: must be visible:true (but transparent) to affect auto-scale
 const _rangeSeries = chart.addLineSeries({{
-  color: 'transparent', lineWidth: 1, visible: false,
+  color: 'rgba(0,0,0,0)', lineWidth: 1, visible: true,
   priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
 }});
 const _sigT = {int(sig_time)};
