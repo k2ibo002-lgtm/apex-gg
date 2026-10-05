@@ -331,11 +331,15 @@ def stats_daily():
 def cmd_daily(chat_id):
     """Show daily P&L report."""
     s = stats_daily()
+    # Count open signals too
+    _cutoff = int(time.time()) - 86400
+    _open = _one("SELECT COUNT(*) n FROM signals WHERE status IN ('open','tp1','tp2','tp3') AND created >= %s", (_cutoff,))["n"]
     _emoji = "🟢" if s["pnl_pct"] >= 0 else "🔴"
     send_message(chat_id,
         "📅 <b>ڕاپۆرتی ڕۆژانە</b> (24 کاتژمێر)\n\n"
-        f"✅ براوە: <b>{s['wins']}</b>\n"
-        f"❌ دۆڕاو: <b>{s['losses']}</b>\n"
+        f"✅ براوە (داخراو): <b>{s['wins']}</b>\n"
+        f"❌ دۆڕاو (داخراو): <b>{s['losses']}</b>\n"
+        f"⏳ کراوە (بەردەوام): <b>{_open}</b>\n"
         f"🏆 Win-rate: <b>{s['winrate']}%</b>\n\n"
         f"{_emoji} کۆی قازانج/زەرەر: <b>{s['pnl_pct']:+.2f}%</b>")
 
