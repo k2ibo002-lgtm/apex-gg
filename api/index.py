@@ -703,6 +703,8 @@ def analyze(symbol):
         return None
     df = df.iloc[:-1].copy()          # drop forming candle — no repaint
     c = df["c"]
+    _early_price = c.iloc[-1]  # Early price definition for Fib/Gann/SR sections
+    _early_atr = atr(df).iloc[-1]  # Early ATR for Gann
 
     # HTF bias (4h)
     try:
@@ -767,6 +769,7 @@ def analyze(symbol):
 
     # === FIBONACCI (added 2026-10-05) ===
     # Swing high/low over 50 bars, check Fib retracement levels
+    _fib_price = c.iloc[-1]  # Define early for Fibonacci
     _lb = min(50, len(df))
     _swing_high = df["h"].iloc[-_lb:].max()
     _swing_low = df["l"].iloc[-_lb:].min()
@@ -778,12 +781,12 @@ def analyze(symbol):
         _fib_382 = _swing_high - 0.382 * _fib_range
         _fib_500 = _swing_high - 0.500 * _fib_range
         _fib_618 = _swing_high - 0.618 * _fib_range
-        _tol = 0.01 * price  # 1% tolerance
+        _tol = 0.01 * _fib_price  # 1% tolerance
         # Price near Fib support in uptrend = bullish
-        if trend_up and (abs(price - _fib_382) < _tol or abs(price - _fib_500) < _tol or abs(price - _fib_618) < _tol):
+        if trend_up and (abs(_fib_price - _fib_382) < _tol or abs(_fib_price - _fib_500) < _tol or abs(_fib_price - _fib_618) < _tol):
             _fib_bull = True
         # Price near Fib resistance in downtrend = bearish
-        if not trend_up and (abs(price - _fib_382) < _tol or abs(price - _fib_500) < _tol or abs(price - _fib_618) < _tol):
+        if not trend_up and (abs(_fib_price - _fib_382) < _tol or abs(_fib_price - _fib_500) < _tol or abs(_fib_price - _fib_618) < _tol):
             _fib_bear = True
 
     # === GANN 1x1 ANGLE (added 2026-10-05) ===
@@ -795,12 +798,12 @@ def analyze(symbol):
         _bars_back = 30
         if len(df) > _bars_back:
             _base_price = df["l"].iloc[-_bars_back]
-            _gann_line_bull = _base_price + a * _bars_back  # 1x1 up
-            if price > _gann_line_bull and trend_up:
+            _gann_line_bull = _base_price + _early_atr * _bars_back  # 1x1 up
+            if _early_price > _gann_line_bull and trend_up:
                 _gann_bull = True
             _base_high = df["h"].iloc[-_bars_back]
-            _gann_line_bear = _base_high - a * _bars_back  # 1x1 down
-            if price < _gann_line_bear and not trend_up:
+            _gann_line_bear = _base_high - _early_atr * _bars_back  # 1x1 down
+            if _early_price < _gann_line_bear and not trend_up:
                 _gann_bear = True
     except Exception:
         pass
@@ -823,15 +826,15 @@ def analyze(symbol):
             # Support (swing low)
             if _lows[_i] == min(_lows[_i-2:_i+3]):
                 _sup_levels.append(_lows[_i])
-        _tol_sr = 0.015 * price  # 1.5% tolerance
+        _tol_sr = 0.015 * _early_price  # 1.5% tolerance
         # Check if price near support (bullish in uptrend)
         for _s in _sup_levels:
-            if abs(price - _s) < _tol_sr and trend_up:
+            if abs(_early_price - _s) < _tol_sr and trend_up:
                 _sr_bull = True
                 break
         # Check if price near resistance (bearish in downtrend)
         for _r in _res_levels:
-            if abs(price - _r) < _tol_sr and not trend_up:
+            if abs(_early_price - _r) < _tol_sr and not trend_up:
                 _sr_bear = True
                 break
     except Exception:
