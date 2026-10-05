@@ -1026,6 +1026,10 @@ def analyze(symbol):
         "symbol": symbol, "price": price, "atr": a,
         "score_bull": bull, "score_bear": bear,
         "news_sent": _news_sent, "fg_val": _fg_val,
+        "fib_bull": bool(_fib_bull), "fib_bear": bool(_fib_bear),
+        "gann_bull": bool(_gann_bull), "gann_bear": bool(_gann_bear),
+        "sr_bull": bool(_sr_bull), "sr_bear": bool(_sr_bear),
+        "rsi_div_bull": bool(_rsi_div_bull), "rsi_div_bear": bool(_rsi_div_bear),
         "htf_up": bool(htf_up), "trend_up": bool(trend_up),
         "adx": float(adx_v.iloc[-1]), "rsi": float(r.iloc[-1]), "mfi": float(m.iloc[-1]),
         "rel_vol": float(rel_vol), "whale": bool(whale),
@@ -1319,9 +1323,17 @@ def cmd_analyze(chat_id, args):
         bull, bear = a["score_bull"], a["score_bear"]
         verdict = "🟢 بەهێزە بۆ LONG" if bull >= 80 else \
                   "🔴 بەهێزە بۆ SHORT" if bear >= 80 else "⏳ چاوەڕوانبە — سیگناڵ نییە"
+        # New components display
+        _comps = []
+        if a.get('fib_bull') or a.get('fib_bear'): _comps.append("Fib✓")
+        if a.get('gann_bull') or a.get('gann_bear'): _comps.append("Gann✓")
+        if a.get('sr_bull') or a.get('sr_bear'): _comps.append("S/R✓")
+        if a.get('rsi_div_bull') or a.get('rsi_div_bear'): _comps.append("Div✓")
+        _comp_str = " | ".join(_comps) if _comps else "—"
         cap = (f"📊 <b>{sym}</b> — <b>{fmt(a['price'])}</b>\n{verdict}\n\n"
                f"🐂 Bull: <b>{bull}/100</b> | 🐻 Bear: <b>{bear}/100</b>\n"
-               f"RSI {a['rsi']:.0f} | MFI {a['mfi']:.0f} | ADX {a['adx']:.0f} | Vol ×{a['rel_vol']:.1f}")
+               f"RSI {a['rsi']:.0f} | MFI {a['mfi']:.0f} | ADX {a['adx']:.0f} | Vol ×{a['rel_vol']:.1f}\n"
+               f"📐 {_comp_str} | 📰 {a.get('news_sent','—')}")
         send_photo(chat_id, path, caption=cap)
     except Exception as e:
         send_message(chat_id, f"❌ هەڵە لە چارت: {e}")
