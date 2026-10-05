@@ -402,6 +402,14 @@ const cs = chart.addCandlestickSeries({{ upColor: 'transparent', downColor: '#c6
   priceFormat: {{ type: 'price', precision: {pxp}, minMove: {min_move} }} }});
 const CANDLES = {json.dumps(candles)};
 cs.setData(CANDLES);
+// Hidden series to force price scale to include all TP/SL levels (so all labels visible)
+const _rangeSeries = chart.addLineSeries({{
+  color: 'transparent', lineWidth: 1, visible: false,
+  priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+}});
+const _sigT = {int(sig_time)};
+const _allLvls = {json.dumps([round(t, 10) for t in tps] + [round(float(sl), 10)])};
+_rangeSeries.setData(_allLvls.map(p => ({{ time: _sigT, value: p }})));
 const TRD = {json.dumps(tr)};
 const DASH = LightweightCharts.LineStyle.Dashed;
 const TPS = {json.dumps([round(t, 10) for t in tps])};
