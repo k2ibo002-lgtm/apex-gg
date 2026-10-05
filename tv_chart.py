@@ -313,25 +313,6 @@ setTimeout(() => {
     _d.innerHTML = 'GG KURD:Trailing Stop Loss <b>' + _st.value.toFixed(__PXP__) + '</b>';
     document.getElementById('tv').appendChild(_d);
   }
-  // TP/SL dotted lines as SVG (pale, limited extent, green for LONG / red for SHORT)
-  const _sigX = chart.timeScale().timeToCoordinate(__SIGTIME__);
-  if (_sigX != null) {{
-    const _lineEndX = Math.min(_sigX + 500, __W__ - 80);  // Limited extent, not full width
-    _TPSL.forEach((p, _li) => {{
-      const _ly2 = cs.priceToCoordinate(p);
-      if (_ly2 == null) return;
-      const _ln = document.createElementNS(svgNS, 'line');
-      _ln.setAttribute('x1', _sigX);
-      _ln.setAttribute('y1', _ly2);
-      _ln.setAttribute('x2', _lineEndX);
-      _ln.setAttribute('y2', _ly2);
-      _ln.setAttribute('stroke', _TPSL_COLS[_li]);
-      _ln.setAttribute('stroke-width', '1');
-      _ln.setAttribute('stroke-dasharray', '4,4');
-      _ln.setAttribute('opacity', '0.7');  // Pale but visible
-      _svg.appendChild(_ln);
-    }});
-  }}
   // TP/SL labels as divs (same pattern as Trailing Stop which works)
   // Show ALL labels, clamping off-chart prices to edges
   const _LVLS = __LEVELS_JSON__;
@@ -437,10 +418,26 @@ const TRD = {json.dumps(tr)};
 const DASH = LightweightCharts.LineStyle.Dashed;
 const TPS = {json.dumps([round(t, 10) for t in tps])};
 const NAMES = ['APEX:Take Profit','APEX:Take Profit 2','APEX:Take Profit 3','APEX:Take Profit 4'];
-// TP/SL dotted lines drawn as SVG (for control over extent and opacity)
-// Instead of createPriceLine (which spans full width)
-const _TPSL = {json.dumps([round(t, 10) for t in tps] + [round(float(sl), 10)])};
-const _TPSL_COLS = {json.dumps(['{col}']*4 + ['{DN}'])};
+// TP/SL dotted lines as LineSeries segments (from signal to right, pale)
+// Like GGShot: lines start where direction changed, not full-width
+const _tpCol = '{col}'.replace('#', '');
+const _tpR = parseInt(_tpCol.substr(0,2), 16), _tpG = parseInt(_tpCol.substr(2,2), 16), _tpB = parseInt(_tpCol.substr(4,2), 16);
+const _tpColor = 'rgba(' + _tpR + ',' + _tpG + ',' + _tpB + ',0.7)';
+const _slColor = 'rgba(239,83,80,0.7)';
+const _sigT2 = {int(sig_time)};
+const _endT = _sigT2 + 1000 * 1800;  // ~1000 candles of 30m into future
+TPS.forEach((p) => {{
+  const _ls = chart.addLineSeries({{ color: _tpColor, lineWidth: 1,
+    lineStyle: DASH, priceLineVisible: false, lastValueVisible: false,
+    crosshairMarkerVisible: false }});
+  _ls.setData([{{ time: _sigT2, value: p }}, {{ time: _endT, value: p }}]);
+}});
+(function(){{
+  const _sls = chart.addLineSeries({{ color: _slColor, lineWidth: 1,
+    lineStyle: DASH, priceLineVisible: false, lastValueVisible: false,
+    crosshairMarkerVisible: false }});
+  _sls.setData([{{ time: _sigT2, value: {sl:.10f} }}, {{ time: _endT, value: {sl:.10f} }}]);
+}})();
 {_svg_js}
 cs.setMarkers({json.dumps(markers)});
 const TP_HITS = {json.dumps(tp_hit_data)};
