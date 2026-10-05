@@ -51,6 +51,8 @@ HTF = "4h"
 KLIMIT = 300
 BUY_LEVEL = 85
 SELL_LEVEL = 85
+# EMERGENCY STOP: set to True to halt all signals
+SIGNALS_PAUSED = False
 SIGNAL_COOLDOWN_H = 12
 
 SL_ATR = 2.0
@@ -227,6 +229,9 @@ def all_user_ids():
 
 def save_signal(s):
     import random
+    # Emergency stop
+    if config.SIGNALS_PAUSED:
+        return None
     # Daily cap: max 15 signals per day
     _day_start = int(time.time()) - 86400
     _count = _one("SELECT COUNT(*) n FROM signals WHERE created >= %s", (_day_start,))["n"]
@@ -760,12 +765,195 @@ def analyze(symbol):
     bos_bull = c.iloc[-1] > hh.iloc[-1] and c.iloc[-2] <= hh.iloc[-2]
     bos_bear = c.iloc[-1] < ll.iloc[-1] and c.iloc[-2] >= ll.iloc[-2]
 
+    # === FIBONACCI (added 2026-10-05) ===
+    # Swing high/low over 50 bars, check Fib retracement levels
+    _lb = min(50, len(df))
+    _swing_high = df["h"].iloc[-_lb:].max()
+    _swing_low = df["l"].iloc[-_lb:].min()
+    _fib_range = _swing_high - _swing_low
+    _fib_bull = False
+    _fib_bear = False
+    if _fib_range > 0:
+        # Fib levels for LONG (retracement from high = support)
+        _fib_382 = _swing_high - 0.382 * _fib_range
+        _fib_500 = _swing_high - 0.500 * _fib_range
+        _fib_618 = _swing_high - 0.618 * _fib_range
+        _tol = 0.01 * price  # 1% tolerance
+        # Price near Fib support in uptrend = bullish
+        if trend_up and (abs(price - _fib_382) < _tol or abs(price - _fib_500) < _tol or abs(price - _fib_618) < _tol):
+            _fib_bull = True
+        # Price near Fib resistance in downtrend = bearish
+        if not trend_up and (abs(price - _fib_382) < _tol or abs(price - _fib_500) < _tol or abs(price - _fib_618) < _tol):
+            _fib_bear = True
+
+    # === GANN 1x1 ANGLE (added 2026-10-05) ===
+    # Price above 1x1 angle from swing low = bullish; below from swing high = bearish
+    _gann_bull = False
+    _gann_bear = False
+    try:
+        # 1x1 angle: 1 ATR per bar
+        _bars_back = 30
+        if len(df) > _bars_back:
+            _base_price = df["l"].iloc[-_bars_back]
+            _gann_line_bull = _base_price + a * _bars_back  # 1x1 up
+            if price > _gann_line_bull and trend_up:
+                _gann_bull = True
+            _base_high = df["h"].iloc[-_bars_back]
+            _gann_line_bear = _base_high - a * _bars_back  # 1x1 down
+            if price < _gann_line_bear and not trend_up:
+                _gann_bear = True
+    except Exception:
+        pass
+
+    # === SUPPORT/RESISTANCE (added 2026-10-05) ===
+    # Find levels where price reversed 2+ times in last 100 bars
+    _sr_bull = False
+    _sr_bear = False
+    try:
+        _sr_lb = min(100, len(df))
+        _highs = df["h"].iloc[-_sr_lb:].values
+        _lows = df["l"].iloc[-_sr_lb:].values
+        # Simple fractal: high is max of 5 bars centered
+        _res_levels = []
+        _sup_levels = []
+        for _i in range(2, _sr_lb - 2):
+            # Resistance (swing high)
+            if _highs[_i] == max(_highs[_i-2:_i+3]):
+                _res_levels.append(_highs[_i])
+            # Support (swing low)
+            if _lows[_i] == min(_lows[_i-2:_i+3]):
+                _sup_levels.append(_lows[_i])
+        _tol_sr = 0.015 * price  # 1.5% tolerance
+        # Check if price near support (bullish in uptrend)
+        for _s in _sup_levels:
+            if abs(price - _s) < _tol_sr and trend_up:
+                _sr_bull = True
+                break
+        # Check if price near resistance (bearish in downtrend)
+        for _r in _res_levels:
+            if abs(price - _r) < _tol_sr and not trend_up:
+                _sr_bear = True
+                break
+    except Exception:
+        pass
+
+    # === CORRELATION & TIME FILTERS (added 2026-10-05) ===
+    _corr_ok = True
+    _time_ok = True
+    # 1. Max 5 open signals at once (avoid overexposure)
+    try:
+        _open_count = _one("SELECT COUNT(*) n FROM signals WHERE status IN ('open','tp1','tp2','tp3')")["n"]
+        if _open_count >= 5:
+            _corr_ok = False
+    except Exception:
+        pass
+    # 2. Skip low-liquidity hours (2-6 AM UTC)
+    try:
+        _hour = time.gmtime().tm_hour
+        if 2 <= _hour < 6:
+            _time_ok = False
+    except Exception:
+        pass
+    # 3. Whale proxy: volume 5x average = +3 points
+    _whale_bull = False
+    _whale_bear = False
+    try:
+        if _v >= 5.0 * _v_avg and _v_avg > 0:
+            if trend_up:
+                _whale_bull = True
+            else:
+                _whale_bear = True
+    except Exception:
+        pass
+
+    # === FUNDAMENTAL (added 2026-10-05) ===
+    # Fear & Greed, Funding Rate, News sentiment
+    _fund_bull = 0
+    _fund_bear = 0
+    _news_sent = "—"
+    _fg_val = None
+    _funding_val = None
+    try:
+        # 1. Fear & Greed Index (contrarian)
+        import requests as _rq
+        _fg = _rq.get("https://api.alternative.me/fng/?limit=1", timeout=5).json()
+        _fg_val = int(_fg["data"][0]["value"])
+        if _fg_val < 25:  # Extreme fear -> bullish
+            _fund_bull += 3
+        elif _fg_val > 75:  # Extreme greed -> bearish
+            _fund_bear += 3
+    except Exception:
+        pass
+    try:
+        # 2. Funding Rate (Binance futures)
+        _fr = _rq.get(f"https://fapi.binance.com/fapi/v1/premiumIndex?symbol={symbol}", timeout=5).json()
+        _funding = float(_fr.get("lastFundingRate", 0))
+        if _funding > 0.001:  # High funding -> overleveraged longs -> bearish
+            _fund_bear += 3
+        elif _funding < -0.001:  # Negative funding -> bearish exhaustion -> bullish
+            _fund_bull += 3
+    except Exception:
+        pass
+    try:
+        # 3. News sentiment (free API, no key)
+        _sym_base = symbol.replace("USDT", "")
+        _news = _rq.get(f"https://cryptocurrency.cv/api/ai/sentiment?asset={_sym_base}", timeout=5).json()
+        _sent = str(_news.get("sentiment", "")).lower()
+        _news_sent = _news.get("sentiment", "—")
+        if "bullish" in _sent or "positive" in _sent:
+            _fund_bull += 2
+        elif "bearish" in _sent or "negative" in _sent:
+            _fund_bear += 2
+    except Exception:
+        pass
+
+    # === RSI DIVERGENCE (added 2026-10-05) ===
+    _rsi_div_bull = False
+    _rsi_div_bear = False
+    try:
+        _rsi_vals = r.iloc[-15:].values
+        _price_lows = df["l"].iloc[-15:].values
+        _price_highs = df["h"].iloc[-15:].values
+        # Bullish divergence: price makes lower low, RSI makes higher low
+        _p_low1 = _price_lows[:7].min()
+        _p_low2 = _price_lows[7:].min()
+        _r_low1 = _rsi_vals[:7].min()
+        _r_low2 = _rsi_vals[7:].min()
+        if _p_low2 < _p_low1 and _r_low2 > _r_low1:
+            _rsi_div_bull = True
+        # Bearish divergence: price makes higher high, RSI makes lower high
+        _p_high1 = _price_highs[:7].max()
+        _p_high2 = _price_highs[7:].max()
+        _r_high1 = _rsi_vals[:7].max()
+        _r_high2 = _rsi_vals[7:].max()
+        if _p_high2 > _p_high1 and _r_high2 < _r_high1:
+            _rsi_div_bear = True
+    except Exception:
+        pass
+
+    # === LIQUIDATION (added 2026-10-05) - Free via Binance ===
+    _liq_bull = 0
+    _liq_bear = 0
+    try:
+        _liq = _rq.get(f"https://fapi.binance.com/fapi/v1/forceOrders?symbol={symbol}&limit=20", timeout=5).json()
+        if isinstance(_liq, list) and len(_liq) > 0:
+            _short_liqs = sum(1 for o in _liq if o.get("side") == "SELL")  # shorts liquidated = bullish
+            _long_liqs = sum(1 for o in _liq if o.get("side") == "BUY")   # longs liquidated = bearish
+            if _short_liqs > _long_liqs + 3:
+                _liq_bull = 2  # short squeeze
+            elif _long_liqs > _short_liqs + 3:
+                _liq_bear = 2  # long wipeout
+    except Exception:
+        pass
+
     bull = sum([htf_up * 20, bull_stack * 15, trend_up * 10, adx_ok_bull * 10,
                 rsi_bull * 8, macd_bull * 7, st_bull * 5, mfi_bull * 8,
-                flow_bull * 12, sqz_rel * 5, bos_bull * 5])
+                flow_bull * 12, sqz_rel * 5, bos_bull * 5, _fib_bull * 5, _gann_bull * 5,
+                _sr_bull * 5, _fund_bull, _whale_bull * 3, _rsi_div_bull * 4, _liq_bull])
     bear = sum([(not htf_up) * 20, bear_stack * 15, (not trend_up) * 10, adx_ok_bear * 10,
                 rsi_bear * 8, macd_bear * 7, st_bear * 5, mfi_bear * 8,
-                flow_bear * 12, sqz_rel * 5, bos_bear * 5])
+                flow_bear * 12, sqz_rel * 5, bos_bear * 5, _fib_bear * 5, _gann_bear * 5,
+                _sr_bear * 5, _fund_bear, _whale_bear * 3, _rsi_div_bear * 4, _liq_bear])
     bull = min(int(bull), 100)
     bear = min(int(bear), 100)
 
@@ -801,7 +989,7 @@ def analyze(symbol):
         pass
 
     side = None
-    if _regime_ok and _vol_ok and _vol_conf_ok:
+    if _regime_ok and _vol_ok and _vol_conf_ok and _corr_ok and _time_ok:
         if bull >= config.BUY_LEVEL and _btc_ok_long:
             side = "LONG"
         elif bear >= config.SELL_LEVEL and _btc_ok_short:
@@ -834,6 +1022,7 @@ def analyze(symbol):
     return {
         "symbol": symbol, "price": price, "atr": a,
         "score_bull": bull, "score_bear": bear,
+        "news_sent": _news_sent, "fg_val": _fg_val,
         "htf_up": bool(htf_up), "trend_up": bool(trend_up),
         "adx": float(adx_v.iloc[-1]), "rsi": float(r.iloc[-1]), "mfi": float(m.iloc[-1]),
         "rel_vol": float(rel_vol), "whale": bool(whale),
