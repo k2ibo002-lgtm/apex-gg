@@ -49,12 +49,12 @@ WEBAPP_URL = os.environ.get("APEX_WEBAPP_URL", "")
 TIMEFRAME = "30m"
 HTF = "4h"
 KLIMIT = 300
-BUY_LEVEL = 80
-SELL_LEVEL = 80
+BUY_LEVEL = 75
+SELL_LEVEL = 75
 SIGNAL_COOLDOWN_H = 12
 
 SL_ATR = 2.0
-TP_ATRS = (1.5, 3.0, 4.5, 9.0)
+TP_ATRS = (3.0, 5.0, 7.0, 12.0)
 ENTRY_ZONE_ATR = 0.15
 
 FREE_SIGNALS_PER_DAY = 3
@@ -283,6 +283,75 @@ def signal_recipients(sid):
 
 
 WIN_STATUSES = ("tp4", "win2", "win3")
+
+
+def stats_daily():
+    """Daily P&L report: wins, losses, profit/loss % for last 24h.
+    Counts ANY TP hit (tp1/tp2/tp3/tp4) as a win, using the actual TP hit."""
+    _cutoff = int(time.time()) - 86400
+    rows = _all("SELECT side, entry, sl, tp1, tp2, tp3, tp4, status FROM signals "
+                "WHERE status IN ('tp1','tp2','tp3','tp4','win2','win3','sl') "
+                "AND created >= %s", (_cutoff,))
+    wins = 0
+    losses = 0
+    total_pnl_pct = 0.0
+    for r in rows:
+        entry = r["entry"]
+        st = r["status"]
+        # Determine which TP was hit based on status
+        if st == "tp1":
+            tp = r["tp1"]
+        elif st == "tp2":
+            tp = r["tp2"]
+        elif st == "tp3":
+            tp = r["tp3"]
+        else:  # tp4, win2, win3
+            tp = r["tp4"] or r["tp3"] or r["tp2"] or r["tp1"]
+        if st in ("tp1", "tp2", "tp3", "tp4", "win2", "win3"):
+            wins += 1
+            if r["side"] == "LONG":
+                pnl = (tp - entry) / entry * 100 if entry and tp else 0
+            else:
+                pnl = (entry - tp) / entry * 100 if entry and tp else 0
+            total_pnl_pct += pnl
+        elif st == "sl":
+            losses += 1
+            sl = r["sl"]
+            if r["side"] == "LONG":
+                pnl = (sl - entry) / entry * 100 if entry and sl else 0
+            else:
+                pnl = (entry - sl) / entry * 100 if entry and sl else 0
+            total_pnl_pct += pnl  # negative
+    total = wins + losses
+    return {"wins": wins, "losses": losses, "total": total,
+            "winrate": round(100 * wins / total, 1) if total else 0.0,
+            "pnl_pct": round(total_pnl_pct, 2)}
+
+
+def cmd_daily(chat_id):
+    """Show daily P&L report."""
+    s = stats_daily()
+    _emoji = "🟢" if s["pnl_pct"] >= 0 else "🔴"
+    send_message(chat_id,
+        "📅 <b>ڕاپۆرتی ڕۆژانە</b> (24 کاتژمێر)\n\n"
+        f"✅ براوە: <b>{s['wins']}</b>\n"
+        f"❌ دۆڕاو: <b>{s['losses']}</b>\n"
+        f"🏆 Win-rate: <b>{s['winrate']}%</b>\n\n"
+        f"{_emoji} کۆی قازانج/زەرەر: <b>{s['pnl_pct']:+.2f}%</b>")
+
+
+def stats_2weeks():
+    """Win rate for last 14 days only (for 2-week test)."""
+    _cutoff = int(time.time()) - 14 * 86400
+    rows = _all("SELECT status, COUNT(*) n FROM signals "
+                "WHERE status IN ('tp4','win2','win3','sl','be','expired') "
+                "AND created >= %s GROUP BY status", (_cutoff,))
+    d = {r["status"]: r["n"] for r in rows}
+    wins = d.get("tp4", 0) + d.get("win2", 0) + d.get("win3", 0)
+    losses = d.get("sl", 0)
+    total = wins + losses
+    return {"wins": wins, "losses": losses, "total": total,
+            "winrate": round(100 * wins / total, 1) if total else 0.0}
 
 
 def stats_overall():
@@ -694,11 +763,35 @@ def analyze(symbol):
     a = atr(df).iloc[-1]
     price = c.iloc[-1]
 
+    # === WIN-RATE FILTERS (added 2026-10-05) ===
+    # 1. Market Regime: only trade in strong trends (ADX >= 20)
+    _adx = adx_v.iloc[-1]
+    _regime_ok = _adx >= 20
+
+    # 2. Volatility: skip if ATR too small relative to price (chop)
+    _atr_ratio = (a / price) if price > 0 else 0
+    _vol_ok = _atr_ratio >= 0.003  # ATR at least 0.3% of price
+
+    # 3. BTC filter: don't LONG alts when BTC dumping, don't SHORT when pumping
+    _btc_ok_long = True
+    _btc_ok_short = True
+    try:
+        _btc_df = klines("BTCUSDT", config.TIMEFRAME, limit=5).iloc[:-1]
+        if len(_btc_df) >= 2:
+            _btc_chg = (_btc_df["c"].iloc[-1] / _btc_df["c"].iloc[-2] - 1) * 100
+            if _btc_chg < -1.5:
+                _btc_ok_long = False  # BTC dumping, skip LONGs
+            if _btc_chg > 1.5:
+                _btc_ok_short = False  # BTC pumping, skip SHORTs
+    except Exception:
+        pass
+
     side = None
-    if bull >= config.BUY_LEVEL:
-        side = "LONG"
-    elif bear >= config.SELL_LEVEL:
-        side = "SHORT"
+    if _regime_ok and _vol_ok:
+        if bull >= config.BUY_LEVEL and _btc_ok_long:
+            side = "LONG"
+        elif bear >= config.SELL_LEVEL and _btc_ok_short:
+            side = "SHORT"
 
     sig = None
     if side:
@@ -1031,6 +1124,16 @@ def cmd_analyze(chat_id, args):
             os.remove(path)
 
 
+def cmd_test2w(chat_id):
+    """Show 2-week test win rate."""
+    s = stats_2weeks()
+    send_message(chat_id,
+        "🧪 <b>تێستی 2 هەفتە</b>\n\n"
+        f"🏆 Win-rate (14 ڕۆژ): <b>{s['winrate']}%</b>\n"
+        f"✅ براوە: {s['wins']} | ❌ دۆڕاو: {s['losses']}\n"
+        f"📊 کۆی: {s['total']} سیگناڵ")
+
+
 def cmd_stats(chat_id):
     s = stats_overall()
     send_message(chat_id,
@@ -1127,6 +1230,10 @@ def handle_update(update):
         cmd_analyze(chat_id, args)
     elif cmd == "/stats":
         cmd_stats(chat_id)
+    elif cmd == "/test2w":
+        cmd_test2w(chat_id)
+    elif cmd == "/daily":
+        cmd_daily(chat_id)
     elif cmd == "/journal":
         cmd_journal(chat_id, user["id"])
     elif cmd == "/log":
