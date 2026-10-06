@@ -316,7 +316,7 @@ def stats_daily():
         elif st == "tp3":
             tp = r["tp3"]
         elif st == "be":
-            tp = entry  # breakeven = 0% profit, but counts as win (TP1 was hit)
+            tp = r["tp1"]  # TP1 was hit (+x%), use TP1 profit (not 0%)
         else:  # tp4, win2, win3
             tp = r["tp4"] or r["tp3"] or r["tp2"] or r["tp1"]
         if st in ("tp1", "tp2", "tp3", "tp4", "win2", "win3", "be"):
