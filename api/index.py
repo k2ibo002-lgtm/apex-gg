@@ -297,10 +297,10 @@ WIN_STATUSES = ("tp4", "win2", "win3")
 
 def stats_daily():
     """Daily P&L report: wins, losses, profit/loss % for last 24h.
-    Counts ANY TP hit (tp1/tp2/tp3/tp4) as a win, using the actual TP hit."""
+    Counts ANY TP hit (tp1/tp2/tp3/tp4/be) as a win, using the actual TP hit."""
     _cutoff = int(time.time()) - 86400
     rows = _all("SELECT side, entry, sl, tp1, tp2, tp3, tp4, status FROM signals "
-                "WHERE status IN ('tp1','tp2','tp3','tp4','win2','win3','sl') "
+                "WHERE status IN ('tp1','tp2','tp3','tp4','win2','win3','sl','be') "
                 "AND created >= %s", (_cutoff,))
     wins = 0
     losses = 0
@@ -315,9 +315,11 @@ def stats_daily():
             tp = r["tp2"]
         elif st == "tp3":
             tp = r["tp3"]
+        elif st == "be":
+            tp = entry  # breakeven = 0% profit, but counts as win (TP1 was hit)
         else:  # tp4, win2, win3
             tp = r["tp4"] or r["tp3"] or r["tp2"] or r["tp1"]
-        if st in ("tp1", "tp2", "tp3", "tp4", "win2", "win3"):
+        if st in ("tp1", "tp2", "tp3", "tp4", "win2", "win3", "be"):
             wins += 1
             if r["side"] == "LONG":
                 pnl = (tp - entry) / entry * 100 if entry and tp else 0
